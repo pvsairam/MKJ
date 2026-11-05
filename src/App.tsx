@@ -280,13 +280,19 @@ function Auth() {
       const { error } = await db.auth.signInWithPassword({ email: email.trim(), password });
       setMessage(error ? error.message : 'Signed in');
     } else if (mode === 'signup') {
-      const { data, error } = await db.auth.signUp({ email: email.trim(), password });
+      const { data, error } = await db.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
+      });
       if (error) {
         setMessage(error.message);
       } else if (data.session) {
         setMessage('Account created and signed in.');
       } else {
-        setMessage('Account created. If email confirmation is enabled in Supabase, please check your inbox, then sign in.');
+        setMessage('Account created. Please check your email inbox to confirm your account, then return here to sign in.');
         setMode('signin');
       }
     } else {
