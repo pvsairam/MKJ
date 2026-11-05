@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/((?!assets/|sw\\.js|workbox-.*\\.js|manifest\\.webmanifest|icon.*|apple-touch-icon\\.png|radha-krishna-vrindavan\\.png|vrindavan-darshan\\.webp).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
