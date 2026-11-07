@@ -33,6 +33,8 @@ import {
   Send,
   MessageCircle,
   Share2,
+  Search,
+  Check,
 } from 'lucide-react';
 import {
   db,
@@ -574,6 +576,8 @@ export default function App() {
   const [postingReflection, setPostingReflection] = useState(false);
   const [openCommentPostId, setOpenCommentPostId] = useState<string | null>(null);
   const [commentDraft, setCommentDraft] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
 
   // Temple & Seva state
   const [events, setEvents] = useState<TempleEventRow[]>([]);
@@ -929,6 +933,18 @@ export default function App() {
     await persistDatePosts(target.entry_date, updatedForDate, nextAll);
   }
 
+  async function deleteCommentFromPost(target: ReflectionPost, commentId: string) {
+    const updatedPost: ReflectionPost = {
+      ...target,
+      comments: (target.comments || []).filter((c) => c.id !== commentId),
+    };
+    const updatedForDate = reflectionPosts
+      .filter((p) => p.entry_date === target.entry_date)
+      .map((p) => (p.id === target.id ? updatedPost : p));
+    const nextAll = reflectionPosts.map((p) => (p.id === target.id ? updatedPost : p));
+    await persistDatePosts(target.entry_date, updatedForDate, nextAll);
+  }
+
   async function sharePost(target: ReflectionPost) {
     const shareText = target.title ? `${target.title}\n\n${target.content}` : target.content;
     if (typeof navigator !== 'undefined' && navigator.share) {
@@ -941,7 +957,8 @@ export default function App() {
     }
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       await navigator.clipboard.writeText(shareText);
-      setNotice('Post copied to clipboard.');
+      setCopiedPostId(target.id);
+      setTimeout(() => setCopiedPostId((prev) => (prev === target.id ? null : prev)), 2000);
     }
   }
 
@@ -1951,23 +1968,25 @@ export default function App() {
                 <span className="social-topic-pill">{postTag || 'Gratitude'}</span>
               </div>
 
-              <input
-                type="text"
-                className="composer-title-input"
-                aria-label="Post title or headline"
-                placeholder="Post title or headline (e.g., Peaceful morning japa at the temple…)"
-                value={postTitle}
-                onChange={(e) => setPostTitle(e.target.value)}
-              />
+              <div className="composer-canvas">
+                <input
+                  type="text"
+                  className="composer-title-input"
+                  aria-label="Post title or headline"
+                  placeholder="Headline (optional) — e.g., Peaceful morning japa…"
+                  value={postTitle}
+                  onChange={(e) => setPostTitle(e.target.value)}
+                />
 
-              <textarea
-                className="composer-textarea"
-                rows={3}
-                aria-label="Post content"
-                placeholder="What's on your mind? Share your reflection, realization, or prayer…"
-                value={postContent}
-                onChange={(e) => setPostContent(e.target.value)}
-              />
+                <textarea
+                  className="composer-textarea"
+                  rows={3}
+                  aria-label="Post content"
+                  placeholder="What's on your mind? Share your reflection, realization, or prayer…"
+                  value={postContent}
+                  onChange={(e) => setPostContent(e.target.value)}
+                />
+              </div>
 
               <div className="reflection-tags" role="group" aria-label="Post channel">
                 {reflectionTags.map((tag) => {
@@ -1993,7 +2012,7 @@ export default function App() {
                   </button>
                 ) : (
                   <small className="muted" style={{ fontSize: 12 }}>
-                    Posts appear immediately in your feed below
+                    Private sanctuary timeline • Instant publish
                   </small>
                 )}
 
@@ -2009,43 +2028,86 @@ export default function App() {
               </div>
             </section>
 
-            {/* Channel Filter Chips (like Reddit / X feeds) */}
-            <div className="feed-filter-bar" role="tablist" aria-label="Filter feed by channel">
-              {(['All', ...reflectionTags] as const).map((chip) => {
-                const active = feedFilter === chip;
-                return (
-                  <button
-                    key={chip}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    className={`feed-filter-chip ${active ? 'active' : ''}`}
-                    onClick={() => setFeedFilter(chip)}
-                  >
-                    {chip === 'All' ? `All Posts (${reflectionPosts.length})` : `k/${chip.toLowerCase()}`}
-                  </button>
-                );
-              })}
+            {/* Search + Channel Filter Toolbar */}
+            <div className="feed-toolbar">
+              {reflectionPosts.length > 1 && (
+                <div className="feed-search-wrap">
+                  <Search size={15} className="feed-search-icon" />
+                  <input
+                    type="search"
+                    className="feed-search-input"
+                    aria-label="Search reflection posts"
+                    placeholder="Search your posts, topics, or prayers…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      className="feed-search-clear"
+                      aria-label="Clear search"
+                      onClick={() => setSearchQuery('')}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="feed-filter-bar" role="tablist" aria-label="Filter feed by channel">
+                {(['All', ...reflectionTags] as const).map((chip) => {
+                  const active = feedFilter === chip;
+                  const count =
+                    chip === 'All'
+                      ? reflectionPosts.length
+                      : reflectionPosts.filter((p) => (p.tag || 'Gratitude').toLowerCase() === chip.toLowerCase())
+                          .length;
+                  return (
+                    <button
+                      key={chip}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      className={`feed-filter-chip ${active ? 'active' : ''}`}
+                      onClick={() => setFeedFilter(chip)}
+                    >
+                      {chip === 'All'
+                        ? `All (${count})`
+                        : `k/${chip.toLowerCase()}${count > 0 ? ` · ${count}` : ''}`}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Social Feed Stream (Screenshot 2 Reddit / X / Facebook layout) */}
+            {/* Social Feed Stream (Screenshot 2 Reddit / X / Threads layout) */}
             {(() => {
-              const visiblePosts =
-                feedFilter === 'All'
-                  ? reflectionPosts
-                  : reflectionPosts.filter((p) => (p.tag || 'Gratitude').toLowerCase() === feedFilter.toLowerCase());
+              const query = searchQuery.trim().toLowerCase();
+              const visiblePosts = reflectionPosts.filter((p) => {
+                const matchesTag =
+                  feedFilter === 'All' || (p.tag || 'Gratitude').toLowerCase() === feedFilter.toLowerCase();
+                if (!matchesTag) return false;
+                if (!query) return true;
+                return (
+                  (p.title || '').toLowerCase().includes(query) ||
+                  p.content.toLowerCase().includes(query) ||
+                  (p.tag || '').toLowerCase().includes(query)
+                );
+              });
 
               if (visiblePosts.length === 0) {
                 return (
-                  <div className="social-feed-container" style={{ textAlign: 'center', padding: '32px 18px' }}>
-                    <div className="motif-mark" style={{ marginBottom: 6 }}>
-                      <LotusMotif size={24} />
+                  <div className="social-feed-container" style={{ textAlign: 'center', padding: '36px 20px' }}>
+                    <div className="motif-mark" style={{ marginBottom: 8 }}>
+                      <LotusMotif size={26} />
                     </div>
                     <strong style={{ display: 'block', marginBottom: 4, color: '#1F181C', fontSize: 16 }}>
-                      No posts in this feed yet
+                      {query || feedFilter !== 'All' ? 'No matching posts found' : 'Your reflection feed is ready'}
                     </strong>
                     <p className="muted" style={{ margin: 0 }}>
-                      Write a title or status update above and tap <strong>Post</strong> to publish to your timeline.
+                      {query || feedFilter !== 'All'
+                        ? 'Try clearing your filter or search query to view all posts.'
+                        : 'Write a headline or status update above and tap Post to publish to your timeline.'}
                     </p>
                   </div>
                 );
@@ -2057,13 +2119,14 @@ export default function App() {
                     const channelSlug = `k/${(post.tag || 'remembrance').toLowerCase()}`;
                     const commentsList = post.comments || [];
                     const isCommentsOpen = openCommentPostId === post.id;
+                    const isCopied = copiedPostId === post.id;
                     const lines = post.content.split('\n');
                     const displayTitle = post.title || lines[0];
                     const displayBody = post.title ? post.content : lines.slice(1).join('\n').trim();
 
                     return (
                       <article className="social-post-item" key={post.id}>
-                        {/* Row 1: Avatar + k/channel • relative time • exact Date & Time + Topic Pill */}
+                        {/* Row 1: Avatar + k/channel • relative time • exact Date & Time + Top-Right Actions */}
                         <div className="social-post-meta">
                           <div className="social-meta-left">
                             <div className="post-avatar sm">
@@ -2075,10 +2138,31 @@ export default function App() {
                             <span className="social-meta-dot">•</span>
                             <span className="social-exact-datetime">
                               {formatPostDateTime(post.created_at, post.entry_date)}
-                              {post.updated_at ? ' (edited)' : ''}
+                              {post.updated_at ? ' · edited' : ''}
                             </span>
                           </div>
-                          <span className="social-topic-pill">{post.tag || 'Remembrance'}</span>
+
+                          <div className="social-meta-right">
+                            <span className="social-topic-pill">{post.tag || 'Remembrance'}</span>
+                            <button
+                              type="button"
+                              className="social-icon-action"
+                              aria-label="Edit post"
+                              title="Edit post"
+                              onClick={() => startEditReflectionPost(post)}
+                            >
+                              <Pencil size={13.5} />
+                            </button>
+                            <button
+                              type="button"
+                              className="social-icon-action danger"
+                              aria-label="Delete post"
+                              title="Delete post"
+                              onClick={() => deleteReflectionPost(post)}
+                            >
+                              <Trash2 size={13.5} />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Row 2: Bold Headline (Screenshot 2 style) */}
@@ -2087,7 +2171,7 @@ export default function App() {
                         {/* Row 3: Multi-line Post Body */}
                         {displayBody && <p className="social-post-body">{displayBody}</p>}
 
-                        {/* Row 4: Bottom Action Pills (Heart/Like, Comment Thread, Share, Edit, Delete) */}
+                        {/* Row 4: Clean 3-Pill Bottom Engagement Bar (Screenshot 2 style) */}
                         <div className="social-post-actions">
                           <button
                             type="button"
@@ -2101,7 +2185,7 @@ export default function App() {
 
                           <button
                             type="button"
-                            className="social-action-pill"
+                            className={`social-action-pill ${isCommentsOpen ? 'active-thread' : ''}`}
                             onClick={() => {
                               setOpenCommentPostId(isCommentsOpen ? null : post.id);
                               setCommentDraft('');
@@ -2118,38 +2202,37 @@ export default function App() {
                             onClick={() => sharePost(post)}
                             title="Share or copy post"
                           >
-                            <span>Share</span>
-                            <Share2 size={13} />
-                          </button>
-
-                          <button
-                            type="button"
-                            className="social-action-pill"
-                            onClick={() => startEditReflectionPost(post)}
-                            title="Edit post"
-                          >
-                            <Pencil size={13} />
-                            <span>Edit</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className="social-action-pill"
-                            onClick={() => deleteReflectionPost(post)}
-                            title="Delete post"
-                          >
-                            <Trash2 size={13} />
+                            {isCopied ? (
+                              <>
+                                <Check size={13} />
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>Share</span>
+                                <Share2 size={13} />
+                              </>
+                            )}
                           </button>
                         </div>
 
-                        {/* Expandable Comment / Thread Section under Post */}
+                        {/* Expandable Threaded Comment Section */}
                         {isCommentsOpen && (
                           <div className="social-comments-box">
                             {commentsList.map((c) => (
                               <div className="social-comment-item" key={c.id}>
                                 <div className="social-comment-meta">
-                                  <strong>Follow-up note</strong>
-                                  <span>{formatPostDateTime(c.created_at, post.entry_date)}</span>
+                                  <strong>Follow-up note • {formatPostDateTime(c.created_at, post.entry_date)}</strong>
+                                  <button
+                                    type="button"
+                                    className="social-icon-action danger"
+                                    style={{ width: 22, minHeight: 22 }}
+                                    title="Delete comment"
+                                    aria-label="Delete comment"
+                                    onClick={() => deleteCommentFromPost(post, c.id)}
+                                  >
+                                    <X size={12} />
+                                  </button>
                                 </div>
                                 <div>{c.text}</div>
                               </div>
@@ -2157,7 +2240,7 @@ export default function App() {
                             <div className="social-comment-input-row">
                               <input
                                 type="text"
-                                placeholder="Add a comment or follow-up thought…"
+                                placeholder="Write a follow-up thought or reply…"
                                 value={commentDraft}
                                 onChange={(e) => setCommentDraft(e.target.value)}
                                 onKeyDown={(e) => {

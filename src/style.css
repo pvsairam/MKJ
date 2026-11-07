@@ -631,14 +631,43 @@ header .icon-button {
   line-height: 1.65;
 }
 
-/* Evening Reflection Feed (Reddit / X / Facebook Social Feed Style) */
+/* Evening Reflection Feed (Premium Reddit / X / Threads Social Stream) */
+@keyframes feedFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heartPop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.24);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .reflection-composer {
-  background: #FFFFFF;
-  border: 1px solid #E3D6C1;
-  border-radius: 16px;
-  padding: 15px 16px;
-  margin: 8px 0 14px;
-  box-shadow: 0 3px 12px rgba(48, 39, 43, 0.05);
+  background: #FFFEFA;
+  border: 1px solid #E2D5C0;
+  border-radius: 20px;
+  padding: 16px 18px 14px;
+  margin: 6px 0 14px;
+  box-shadow: 0 8px 26px -8px rgba(48, 30, 44, 0.08), 0 2px 6px rgba(48, 30, 44, 0.03);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.reflection-composer:focus-within {
+  border-color: rgba(181, 139, 76, 0.75);
+  box-shadow: 0 12px 32px -8px rgba(72, 40, 63, 0.12), 0 0 0 3px rgba(181, 139, 76, 0.12);
 }
 
 .composer-top {
@@ -656,8 +685,8 @@ header .icon-button {
 }
 
 .post-avatar {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: linear-gradient(145deg, var(--plum) 0%, var(--burgundy) 100%);
   color: #FFF6E6;
@@ -665,12 +694,14 @@ header .icon-button {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 1px solid rgba(181, 139, 76, 0.45);
+  border: 1.5px solid rgba(181, 139, 76, 0.55);
+  box-shadow: 0 2px 6px rgba(72, 40, 63, 0.15);
 }
 
 .post-avatar.sm {
   width: 28px;
   height: 28px;
+  border-width: 1px;
 }
 
 .composer-meta {
@@ -681,7 +712,8 @@ header .icon-button {
 
 .composer-meta strong {
   font-size: 14px;
-  color: #1F181C;
+  font-weight: 700;
+  color: #1F171C;
   line-height: 1.2;
 }
 
@@ -693,43 +725,79 @@ header .icon-button {
   gap: 4px;
 }
 
+.composer-canvas {
+  background: #FAF5EB;
+  border: 1px solid #EAE0CF;
+  border-radius: 14px;
+  padding: 2px 14px;
+  margin-bottom: 10px;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.composer-canvas:focus-within {
+  background: #FFFFFF;
+  border-color: rgba(181, 139, 76, 0.55);
+}
+
 .composer-title-input {
   width: 100%;
-  border: 1px solid #E6D9C6;
-  border-radius: 11px;
-  background: #FAF6EE;
-  padding: 10px 13px;
-  font-size: 15.5px;
+  border: none;
+  border-bottom: 1px solid #EDE3D2;
+  border-radius: 0;
+  background: transparent;
+  padding: 10px 0 9px;
+  font-size: 16px;
   font-weight: 700;
-  color: #1F181C;
-  margin-bottom: 8px;
-  min-height: 42px;
+  color: #1B1318;
+  margin: 0;
+  min-height: 40px;
+  box-shadow: none;
+}
+
+.composer-title-input:focus {
+  outline: none;
+  border-bottom-color: rgba(181, 139, 76, 0.5);
 }
 
 .composer-title-input::placeholder {
   font-weight: 600;
-  color: #8D7E84;
+  color: #95868D;
 }
 
 .composer-textarea {
   width: 100%;
-  border: 1px solid #E6D9C6;
-  border-radius: 11px;
-  background: #FAF6EE;
-  padding: 11px 13px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 10px 0;
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.58;
   color: #2A2125;
-  min-height: 92px;
+  min-height: 76px;
   resize: vertical;
-  margin-top: 0;
+  margin: 0;
+  box-shadow: none;
+}
+
+.composer-textarea:focus {
+  outline: none;
+}
+
+.composer-textarea::placeholder {
+  color: #8F8087;
 }
 
 .reflection-tags {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
-  margin: 10px 0 12px;
+  overflow-x: auto;
+  padding: 2px 0 10px;
+  scrollbar-width: none;
+}
+
+.reflection-tags::-webkit-scrollbar {
+  display: none;
 }
 
 .reflection-tag-btn {
@@ -741,12 +809,19 @@ header .icon-button {
   background: #F3ECE0;
   color: #5E4E56;
   border: 1px solid transparent;
+  white-space: nowrap;
+  transition: all 0.16s ease;
+}
+
+.reflection-tag-btn:hover {
+  background: #EAE0CE;
 }
 
 .reflection-tag-btn.active {
   background: var(--plum);
   color: #FFF8EC;
   border-color: var(--plum);
+  box-shadow: 0 2px 8px rgba(72, 40, 63, 0.18);
 }
 
 .composer-footer {
@@ -755,18 +830,80 @@ header .icon-button {
   justify-content: space-between;
   gap: 10px;
   padding-top: 10px;
-  border-top: 1px solid #EFE5D5;
+  border-top: 1px solid #F0E6D6;
 }
 
 .composer-post-btn {
-  background: var(--plum);
-  border: 1px solid rgba(181, 139, 76, 0.45);
+  background: linear-gradient(145deg, var(--plum) 0%, var(--burgundy) 100%);
+  border: 1px solid rgba(181, 139, 76, 0.5);
   color: #FFF8EC;
   border-radius: 99px;
-  padding: 8px 20px;
+  padding: 8px 22px;
   min-height: 38px;
   font-size: 13.5px;
   font-weight: 600;
+  box-shadow: 0 3px 10px rgba(72, 40, 63, 0.18);
+  transition: transform 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
+}
+
+.composer-post-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(72, 40, 63, 0.24);
+}
+
+.composer-post-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Filter + Search Toolbar */
+.feed-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+
+.feed-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.feed-search-icon {
+  position: absolute;
+  left: 13px;
+  color: #8A7A82;
+  pointer-events: none;
+}
+
+.feed-search-input {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 34px 7px 36px;
+  border-radius: 99px;
+  background: #FFFEFA;
+  border: 1px solid #E3D7C3;
+  font-size: 13.5px;
+  color: #261D22;
+  margin: 0;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.feed-search-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(181, 139, 76, 0.12);
+}
+
+.feed-search-clear {
+  position: absolute;
+  right: 6px;
+  min-height: 26px;
+  width: 26px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #7D6D75;
 }
 
 .feed-filter-bar {
@@ -774,7 +911,7 @@ header .icon-button {
   align-items: center;
   gap: 6px;
   overflow-x: auto;
-  padding: 4px 0 10px;
+  padding: 2px 0 4px;
   scrollbar-width: none;
 }
 
@@ -783,36 +920,48 @@ header .icon-button {
 }
 
 .feed-filter-chip {
-  min-height: 30px;
-  padding: 4px 12px;
+  min-height: 31px;
+  padding: 5px 13px;
   border-radius: 99px;
   font-size: 12px;
   font-weight: 600;
   background: #EFE6D5;
   color: #5B4B53;
-  border: 1px solid transparent;
+  border: 1px solid rgba(181, 139, 76, 0.18);
   white-space: nowrap;
+  transition: all 0.16s ease;
+}
+
+.feed-filter-chip:hover {
+  background: #E6DBC7;
 }
 
 .feed-filter-chip.active {
   background: #2C1A29;
   color: #FFF9F0;
+  border-color: #2C1A29;
+  box-shadow: 0 2px 8px rgba(44, 26, 41, 0.18);
 }
 
-/* Social Feed Stream (Screenshot 2 Reddit / X / Facebook style) */
+/* Social Feed Stream (Screenshot 2 Reddit / X / Threads style) */
 .social-feed-container {
   background: #FFFFFF;
   border: 1px solid #E4D8C5;
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(48, 39, 43, 0.04);
+  box-shadow: 0 6px 24px -8px rgba(48, 39, 43, 0.07);
 }
 
 .social-post-item {
-  padding: 16px 16px 14px;
-  border-bottom: 1px solid #EAE0D0;
+  padding: 18px 18px 15px;
+  border-bottom: 1px solid #EDE3D4;
   background: #FFFFFF;
-  transition: background 0.15s ease;
+  animation: feedFadeIn 0.24s ease both;
+  transition: background 0.16s ease;
+}
+
+.social-post-item:hover {
+  background: #FFFDF9;
 }
 
 .social-post-item:last-child {
@@ -824,7 +973,7 @@ header .icon-button {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 9px;
 }
 
 .social-meta-left {
@@ -838,34 +987,64 @@ header .icon-button {
 .social-channel-name {
   font-size: 13px;
   font-weight: 700;
-  color: #231B20;
+  color: #21181E;
 }
 
 .social-meta-dot {
-  color: #8E7F86;
-  font-size: 12px;
+  color: #A09198;
+  font-size: 11px;
 }
 
 .social-time-ago {
   font-size: 12.5px;
-  color: #6E5F66;
+  font-weight: 500;
+  color: #6B5C63;
   font-variant-numeric: tabular-nums;
 }
 
 .social-exact-datetime {
   font-size: 11.5px;
-  color: #8A7A81;
+  color: #8E7F86;
   font-variant-numeric: tabular-nums;
 }
 
+.social-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .social-topic-pill {
-  background: #48283F;
-  color: #FFF8EE;
+  background: #F4EBE0;
+  color: var(--plum);
+  border: 1px solid rgba(181, 139, 76, 0.35);
   font-size: 11px;
   font-weight: 600;
-  padding: 3px 10px;
+  padding: 2px 9px;
   border-radius: 99px;
   letter-spacing: 0.01em;
+}
+
+.social-icon-action {
+  min-height: 28px;
+  width: 28px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #7D6D74;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.social-icon-action:hover {
+  background: #F3ECE1;
+  color: var(--plum);
+}
+
+.social-icon-action.danger:hover {
+  background: #FBE9EC;
+  color: #9E2A48;
 }
 
 .social-post-title {
@@ -873,19 +1052,19 @@ header .icon-button {
   font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 17px;
   font-weight: 700;
-  line-height: 1.35;
-  color: #1B1418;
-  letter-spacing: -0.01em;
+  line-height: 1.38;
+  color: #181115;
+  letter-spacing: -0.012em;
 }
 
 .social-post-body {
   font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14.5px;
-  line-height: 1.58;
-  color: #463B40;
+  line-height: 1.62;
+  color: #43373D;
   white-space: pre-wrap;
   word-break: break-word;
-  margin: 0 0 12px;
+  margin: 0 0 13px;
 }
 
 .social-post-actions {
@@ -893,67 +1072,88 @@ header .icon-button {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .social-action-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  min-height: 30px;
-  padding: 4px 11px;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 13px;
   border-radius: 99px;
-  background: #F4EFE6;
-  border: 1px solid #E4D9C8;
+  background: #F5F0E7;
+  border: 1px solid #E6DCCB;
   color: #3B2E35;
   font-size: 12.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  transition: all 0.15s ease;
 }
 
 .social-action-pill:hover {
   background: #EBE2D3;
+  transform: translateY(-1px);
+}
+
+.social-action-pill:active {
+  transform: scale(0.96);
 }
 
 .social-action-pill.liked {
-  background: #F9E5EA;
-  border-color: #E2B4C0;
-  color: #8E244D;
+  background: #FBE8EE;
+  border-color: #E7B8C5;
+  color: #96224C;
+}
+
+.social-action-pill.liked svg {
+  animation: heartPop 0.28s ease;
+}
+
+.social-action-pill.active-thread {
+  background: #EDE3D3;
+  border-color: rgba(181, 139, 76, 0.5);
+  color: var(--plum);
 }
 
 .social-comments-box {
   margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid #EFE6D8;
+  padding: 12px 0 2px 14px;
+  border-top: 1px solid #F0E7D9;
+  border-left: 2px solid #E5D8C3;
+  animation: feedFadeIn 0.2s ease both;
 }
 
 .social-comment-item {
   background: #FAF6EE;
-  border-radius: 10px;
-  padding: 8px 11px;
-  margin-bottom: 7px;
+  border: 1px solid #EDE3D2;
+  border-radius: 12px;
+  padding: 9px 12px;
+  margin-bottom: 8px;
   font-size: 13.5px;
+  line-height: 1.5;
   color: #2F252A;
 }
 
 .social-comment-meta {
   font-size: 11px;
   color: #7D6D75;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
 }
 
 .social-comment-input-row {
   display: flex;
-  gap: 7px;
+  gap: 8px;
   margin-top: 8px;
 }
 
 .social-comment-input-row input {
   flex: 1;
   min-height: 36px;
-  padding: 6px 11px;
+  padding: 6px 13px;
   font-size: 13.5px;
   border-radius: 99px;
   background: #FAF6EE;
@@ -961,13 +1161,31 @@ header .icon-button {
   margin-top: 0;
 }
 
+.social-comment-input-row input:focus {
+  background: #FFFFFF;
+  border-color: var(--gold);
+  outline: none;
+}
+
 .social-comment-input-row button {
   min-height: 36px;
-  padding: 6px 14px;
+  padding: 6px 16px;
   border-radius: 99px;
   font-size: 12.5px;
   font-weight: 600;
 }
+
+@media (max-width: 420px) {
+  .reflection-composer {
+    padding: 14px 14px 12px;
+    border-radius: 16px;
+  }
+  .social-post-item {
+    padding: 15px 14px 13px;
+  }
+  .social-post-title {
+    font-size: 16px;
+  }
 }
 
 .secondary-btn {
