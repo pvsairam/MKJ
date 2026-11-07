@@ -31,6 +31,8 @@ import {
   ChevronUp,
   Clock,
   Send,
+  MessageCircle,
+  Share2,
 } from 'lucide-react';
 import {
   db,
@@ -38,6 +40,7 @@ import {
   dateKey,
   dailyActivities,
   journalPrompts,
+  questions,
   templeEventTypes,
   templeEventMetaMap,
   formatEventQuantity,
@@ -47,11 +50,21 @@ import {
 
 type Tab = 'home' | 'daily' | 'journal' | 'reflection' | 'temple' | 'reports';
 
+export interface ReflectionComment {
+  id: string;
+  text: string;
+  created_at: string;
+}
+
 export interface ReflectionPost {
   id: string;
   entry_date: string;
+  title?: string;
   content: string;
   tag: string;
+  likes?: number;
+  liked?: boolean;
+  comments?: ReflectionComment[];
   created_at: string;
   updated_at?: string;
 }
@@ -82,10 +95,14 @@ function extractPostsFromReflectionRows(rows: ReflectionRow[]): ReflectionPost[]
           const trimmed = p.content?.trim() || '';
           if (trimmed) {
             posts.push({
-              id: p.id || `${row.entry_date}_${ posts.length }`,
+              id: p.id || `${row.entry_date}_${posts.length}`,
               entry_date: p.entry_date || row.entry_date,
+              title: typeof p.title === 'string' && p.title.trim() ? p.title.trim() : undefined,
               content: trimmed,
-              tag: typeof p.tag === 'string' ? p.tag : 'Remembrance',
+              tag: typeof p.tag === 'string' && p.tag ? p.tag : 'Remembrance',
+              likes: typeof p.likes === 'number' ? p.likes : 0,
+              liked: Boolean(p.liked),
+              comments: Array.isArray(p.comments) ? p.comments : [],
               created_at: p.created_at || row.created_at || `${row.entry_date}T20:00:00.000Z`,
               updated_at: p.updated_at,
             });
@@ -95,9 +112,11 @@ function extractPostsFromReflectionRows(rows: ReflectionRow[]): ReflectionPost[]
       continue;
     }
 
-    // Legacy reflection row compatibility so no previous reflection is ever hidden
+    // Legacy reflection row compatibility (converts old question comments / pleasure notes into social feed posts)
+    let legacyTitle: string | undefined;
     const legacyParts: string[] = [];
     if (typeof row.pleasure === 'string' && row.pleasure.trim()) {
+      legacyTitle = "Offered for Krishna's Pleasure";
       legacyParts.push(row.pleasure.trim());
     }
     if (typeof row.sense_gratification === 'string' && row.sense_gratification.trim()) {
@@ -105,6 +124,10 @@ function extractPostsFromReflectionRows(rows: ReflectionRow[]): ReflectionPost[]
     }
     for (const [k, v] of Object.entries(ans)) {
       if (k.startsWith('comment_') && typeof v === 'string' && v.trim()) {
+        const qIdx = Number(k.replace('comment_', ''));
+        if (!legacyTitle && !Number.isNaN(qIdx) && questions[qIdx]) {
+          legacyTitle = questions[qIdx];
+        }
         legacyParts.push(v.trim());
       }
     }
@@ -113,8 +136,12 @@ function extractPostsFromReflectionRows(rows: ReflectionRow[]): ReflectionPost[]
       posts.push({
         id: `legacy_${row.entry_date}`,
         entry_date: row.entry_date,
+        title: legacyTitle,
         content: legacyParts.join('\n\n'),
         tag: 'Remembrance',
+        likes: 1,
+        liked: true,
+        comments: [],
         created_at: row.created_at || `${row.entry_date}T20:00:00.000Z`,
         updated_at: row.updated_at || undefined,
       });
@@ -127,10 +154,24 @@ function extractPostsFromReflectionRows(rows: ReflectionRow[]): ReflectionPost[]
 function formatPostDateTime(isoString: string, fallbackDate: string): string {
   const parsed = new Date(isoString);
   if (!Number.isNaN(parsed.getTime())) {
-    return format(parsed, 'd MMM yyyy • h:mm a');
+    return format(parsed, 'd MMM yyyy, h:mm a');
   }
   const fallback = new Date(fallbackDate + 'T12:00:00');
   return !Number.isNaN(fallback.getTime()) ? format(fallback, 'd MMM yyyy') : fallbackDate;
+}
+
+function formatRelativeTime(isoString: string): string {
+  const parsed = new Date(isoString);
+  if (Number.isNaN(parsed.getTime())) return 'Recently';
+  const diffSec = Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 1000));
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} hr ago`;
+  const diffDays = Math.floor(diffHr / 24);
+  if (diffDays < 30) return `${diffDays}d ago`;
+  return format(parsed, 'd MMM');
 }
 
 type Daily = {
@@ -523,12 +564,16 @@ export default function App() {
   const [journal, setJournal] = useState<Record<string, string>>({});
   const [isDirty, setIsDirty] = useState(false);
 
-  // Reflection Feed (X / Facebook status post timeline) state
+  // Reflection Feed (Reddit / X / Facebook social timeline) state
   const [reflectionPosts, setReflectionPosts] = useState<ReflectionPost[]>([]);
+  const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
   const [postTag, setPostTag] = useState<string>('Gratitude');
+  const [feedFilter, setFeedFilter] = useState<string>('All');
   const [editingPost, setEditingPost] = useState<ReflectionPost | null>(null);
   const [postingReflection, setPostingReflection] = useState(false);
+  const [openCommentPostId, setOpenCommentPostId] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState('');
 
   // Temple & Seva state
   const [events, setEvents] = useState<TempleEventRow[]>([]);
@@ -773,18 +818,37 @@ export default function App() {
     setBusy(false);
   }
 
-  // 4b. Publish, Edit, or Delete a Reflection Status Post
+  // 4b. Publish, Edit, Like, Comment, Share, or Delete a Reflection Social Post
+  async function persistDatePosts(targetDate: string, updatedPostsForDate: ReflectionPost[], nextAllPosts: ReflectionPost[]) {
+    if (!db || !session) return { error: { message: 'Not signed in' } };
+    const uid = session.user.id;
+    const { error } = await db.from('reflections').upsert(
+      {
+        user_id: uid,
+        entry_date: targetDate,
+        answers: { posts: updatedPostsForDate },
+        pleasure: updatedPostsForDate.map((p) => (p.title ? `${p.title}\n${p.content}` : p.content)).join('\n\n'),
+        sense_gratification: '',
+      },
+      { onConflict: 'user_id,entry_date' }
+    );
+    if (!error) {
+      setReflectionPosts(nextAllPosts);
+    }
+    return { error };
+  }
+
   async function submitReflectionPost() {
     if (!db || !session) return;
-    const trimmed = postContent.trim();
-    if (!trimmed) {
-      setNotice('Please write your reflection before posting.');
+    const trimmedTitle = postTitle.trim();
+    const trimmedContent = postContent.trim();
+    if (!trimmedContent && !trimmedTitle) {
+      setNotice('Please write a headline or reflection before posting.');
       return;
     }
 
     setPostingReflection(true);
     setNotice('');
-    const uid = session.user.id;
     const nowIso = new Date().toISOString();
     const targetDate = editingPost ? editingPost.entry_date : dateKey(new Date());
 
@@ -795,8 +859,9 @@ export default function App() {
     if (editingPost) {
       const updatedPost: ReflectionPost = {
         ...editingPost,
-        content: trimmed,
-        tag: postTag,
+        title: trimmedTitle || undefined,
+        content: trimmedContent || trimmedTitle,
+        tag: postTag || 'Gratitude',
         updated_at: nowIso,
       };
       updatedPostsForDate = existingForDate.map((p) => (p.id === editingPost.id ? updatedPost : p));
@@ -808,38 +873,81 @@ export default function App() {
             ? crypto.randomUUID()
             : `post_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         entry_date: targetDate,
-        content: trimmed,
-        tag: postTag,
+        title: trimmedTitle || undefined,
+        content: trimmedContent || trimmedTitle,
+        tag: postTag || 'Gratitude',
+        likes: 1,
+        liked: true,
+        comments: [],
         created_at: nowIso,
       };
       updatedPostsForDate = [newPost, ...existingForDate];
       nextAllPosts = [newPost, ...reflectionPosts];
     }
 
-    const { error } = await db.from('reflections').upsert(
-      {
-        user_id: uid,
-        entry_date: targetDate,
-        answers: { posts: updatedPostsForDate },
-        pleasure: updatedPostsForDate.map((p) => p.content).join('\n\n'),
-        sense_gratification: '',
-      },
-      { onConflict: 'user_id,entry_date' }
-    );
+    const { error } = await persistDatePosts(targetDate, updatedPostsForDate, nextAllPosts);
 
     if (error) {
       setNotice('Could not publish reflection: ' + error.message);
     } else {
-      setReflectionPosts(nextAllPosts);
+      setPostTitle('');
       setPostContent('');
       setEditingPost(null);
-      setNotice(editingPost ? 'Reflection post updated.' : 'Reflection posted to your sanctuary feed.');
+      setNotice(editingPost ? 'Post updated.' : 'Published to your reflection feed.');
     }
     setPostingReflection(false);
   }
 
+  async function toggleLikePost(target: ReflectionPost) {
+    const nextLiked = !target.liked;
+    const nextLikes = Math.max(0, (target.likes || 0) + (nextLiked ? 1 : -1));
+    const updatedPost: ReflectionPost = { ...target, liked: nextLiked, likes: nextLikes };
+    const updatedForDate = reflectionPosts
+      .filter((p) => p.entry_date === target.entry_date)
+      .map((p) => (p.id === target.id ? updatedPost : p));
+    const nextAll = reflectionPosts.map((p) => (p.id === target.id ? updatedPost : p));
+    await persistDatePosts(target.entry_date, updatedForDate, nextAll);
+  }
+
+  async function addCommentToPost(target: ReflectionPost) {
+    const trimmed = commentDraft.trim();
+    if (!trimmed) return;
+    const newComment: ReflectionComment = {
+      id: `c_${Date.now()}`,
+      text: trimmed,
+      created_at: new Date().toISOString(),
+    };
+    const updatedPost: ReflectionPost = {
+      ...target,
+      comments: [...(target.comments || []), newComment],
+    };
+    const updatedForDate = reflectionPosts
+      .filter((p) => p.entry_date === target.entry_date)
+      .map((p) => (p.id === target.id ? updatedPost : p));
+    const nextAll = reflectionPosts.map((p) => (p.id === target.id ? updatedPost : p));
+    setCommentDraft('');
+    await persistDatePosts(target.entry_date, updatedForDate, nextAll);
+  }
+
+  async function sharePost(target: ReflectionPost) {
+    const shareText = target.title ? `${target.title}\n\n${target.content}` : target.content;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title: target.title || 'My Krishna Journey Reflection', text: shareText });
+        return;
+      } catch {
+        // Fallback to clipboard
+      }
+    }
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(shareText);
+      setNotice('Post copied to clipboard.');
+    }
+  }
+
   function startEditReflectionPost(post: ReflectionPost) {
     setEditingPost(post);
+    setPostTitle(post.title || '');
     setPostContent(post.content);
     setPostTag(post.tag || 'Gratitude');
     setNotice('');
@@ -848,13 +956,14 @@ export default function App() {
 
   function cancelEditReflectionPost() {
     setEditingPost(null);
+    setPostTitle('');
     setPostContent('');
     setPostTag('Gratitude');
     setNotice('');
   }
 
   async function deleteReflectionPost(target: ReflectionPost) {
-    if (!db || !session || !window.confirm('Delete this reflection post?')) return;
+    if (!db || !session || !window.confirm('Delete this post from your feed?')) return;
     setPostingReflection(true);
     setNotice('');
     const uid = session.user.id;
@@ -864,15 +973,10 @@ export default function App() {
 
     let err: { message: string } | null = null;
     if (remainingForDate.length > 0) {
-      const res = await db.from('reflections').upsert(
-        {
-          user_id: uid,
-          entry_date: target.entry_date,
-          answers: { posts: remainingForDate },
-          pleasure: remainingForDate.map((p) => p.content).join('\n\n'),
-          sense_gratification: '',
-        },
-        { onConflict: 'user_id,entry_date' }
+      const res = await persistDatePosts(
+        target.entry_date,
+        remainingForDate,
+        reflectionPosts.filter((p) => p.id !== target.id)
       );
       err = res.error;
     } else {
@@ -882,16 +986,18 @@ export default function App() {
         .eq('user_id', uid)
         .eq('entry_date', target.entry_date);
       err = res.error;
+      if (!err) {
+        setReflectionPosts((prev) => prev.filter((p) => p.id !== target.id));
+      }
     }
 
     if (err) {
       setNotice('Could not delete post: ' + err.message);
     } else {
-      setReflectionPosts((prev) => prev.filter((p) => p.id !== target.id));
       if (editingPost?.id === target.id) {
         cancelEditReflectionPost();
       }
-      setNotice('Reflection post removed.');
+      setNotice('Post removed from feed.');
     }
     setPostingReflection(false);
   }
@@ -1821,46 +1927,49 @@ export default function App() {
         )}
 
         {/* ==========================================
-            4. REFLECTION FEED (X / FACEBOOK STATUS TIMELINE)
+            4. REFLECTION FEED (REDDIT / X / FACEBOOK SOCIAL STREAM)
            ========================================== */}
         {tab === 'reflection' && (
           <div className="evening-surface">
-            <div className="section-heading evening">
-              <div className="heading-motif">
-                <LotusMotif size={26} />
-              </div>
-              <span className="eyebrow">SANCTUARY FEED</span>
-              <h2>Heartfelt Reflections</h2>
-              <p>Share your thoughts, prayers, and moments of gratitude with Sri Krishna.</p>
-            </div>
-
-            {/* X / Facebook Style Status Post Composer */}
-            <section className="reflection-composer" aria-label="Create a reflection post">
+            {/* Top Social Post Composer */}
+            <section className="reflection-composer" aria-label="Create a post">
               <div className="composer-top">
-                <div className="post-avatar">
-                  <LotusMotif size={20} />
+                <div className="composer-author-left">
+                  <div className="post-avatar">
+                    <LotusMotif size={18} />
+                  </div>
+                  <div className="composer-meta">
+                    <strong>{editingPost ? 'Edit Post' : `k/${(postTag || 'gratitude').toLowerCase()}`}</strong>
+                    <span>
+                      <Clock size={11} />
+                      {editingPost
+                        ? `Posted ${formatPostDateTime(editingPost.created_at, editingPost.entry_date)}`
+                        : format(new Date(), 'd MMM yyyy, h:mm a')}
+                    </span>
+                  </div>
                 </div>
-                <div className="composer-meta">
-                  <strong>{editingPost ? 'Edit Reflection Post' : 'Share a Reflection'}</strong>
-                  <span>
-                    <Clock size={12} />
-                    {editingPost
-                      ? `Originally posted ${formatPostDateTime(editingPost.created_at, editingPost.entry_date)}`
-                      : format(new Date(), 'd MMM yyyy • h:mm a')}
-                  </span>
-                </div>
+                <span className="social-topic-pill">{postTag || 'Gratitude'}</span>
               </div>
+
+              <input
+                type="text"
+                className="composer-title-input"
+                aria-label="Post title or headline"
+                placeholder="Post title or headline (e.g., Peaceful morning japa at the temple…)"
+                value={postTitle}
+                onChange={(e) => setPostTitle(e.target.value)}
+              />
 
               <textarea
                 className="composer-textarea"
-                rows={4}
-                aria-label="Reflection post content"
-                placeholder="What is in your heart today? Write a reflection, prayer, or moment of gratitude for Sri Krishna…"
+                rows={3}
+                aria-label="Post content"
+                placeholder="What's on your mind? Share your reflection, realization, or prayer…"
                 value={postContent}
                 onChange={(e) => setPostContent(e.target.value)}
               />
 
-              <div className="reflection-tags" role="group" aria-label="Reflection mood or topic">
+              <div className="reflection-tags" role="group" aria-label="Post channel">
                 {reflectionTags.map((tag) => {
                   const isActive = postTag === tag;
                   return (
@@ -1869,9 +1978,9 @@ export default function App() {
                       type="button"
                       aria-pressed={isActive}
                       className={`reflection-tag-btn ${isActive ? 'active' : ''}`}
-                      onClick={() => setPostTag((prev) => (prev === tag ? '' : tag))}
+                      onClick={() => setPostTag(tag)}
                     >
-                      {tag}
+                      k/{tag.toLowerCase()}
                     </button>
                   );
                 })}
@@ -1884,94 +1993,197 @@ export default function App() {
                   </button>
                 ) : (
                   <small className="muted" style={{ fontSize: 12 }}>
-                    Private sanctuary feed • Saved with date & time
+                    Posts appear immediately in your feed below
                   </small>
                 )}
 
                 <button
                   type="button"
                   className="composer-post-btn"
-                  disabled={postingReflection || !postContent.trim()}
+                  disabled={postingReflection || (!postContent.trim() && !postTitle.trim())}
                   onClick={submitReflectionPost}
                 >
-                  <Send size={15} />
-                  {postingReflection
-                    ? 'Posting…'
-                    : editingPost
-                    ? 'Update Post'
-                    : 'Post Reflection'}
+                  <Send size={14} />
+                  {postingReflection ? 'Posting…' : editingPost ? 'Update Post' : 'Post'}
                 </button>
               </div>
             </section>
 
-            {/* Chronological Feed of Posts */}
-            <div className="reflection-feed-header">
-              <h3>Your Reflection Timeline</h3>
-              <span>
-                {reflectionPosts.length} {reflectionPosts.length === 1 ? 'post' : 'posts'}
-              </span>
+            {/* Channel Filter Chips (like Reddit / X feeds) */}
+            <div className="feed-filter-bar" role="tablist" aria-label="Filter feed by channel">
+              {(['All', ...reflectionTags] as const).map((chip) => {
+                const active = feedFilter === chip;
+                return (
+                  <button
+                    key={chip}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    className={`feed-filter-chip ${active ? 'active' : ''}`}
+                    onClick={() => setFeedFilter(chip)}
+                  >
+                    {chip === 'All' ? `All Posts (${reflectionPosts.length})` : `k/${chip.toLowerCase()}`}
+                  </button>
+                );
+              })}
             </div>
 
-            {reflectionPosts.length === 0 ? (
-              <div className="card" style={{ textAlign: 'center', padding: '28px 18px' }}>
-                <div className="motif-mark" style={{ marginBottom: 6 }}>
-                  <LotusMotif size={24} />
-                </div>
-                <strong style={{ display: 'block', marginBottom: 4, color: 'var(--plum)' }}>
-                  Your reflection feed is quiet
-                </strong>
-                <p className="muted" style={{ margin: 0 }}>
-                  Write a status post above and tap <strong>Post Reflection</strong>. Every reflection you share will
-                  appear right here with its date and time.
-                </p>
-              </div>
-            ) : (
-              reflectionPosts.map((post) => (
-                <article className="reflection-post-card" key={post.id}>
-                  <div className="post-header">
-                    <div className="post-author-wrap">
-                      <div className="post-avatar">
-                        <LotusMotif size={18} />
-                      </div>
-                      <div className="post-author-info">
-                        <div className="post-author-line">
-                          <strong>Devotee Reflection</strong>
-                          {post.tag && <span className="post-tag-badge">{post.tag}</span>}
-                        </div>
-                        <div className="post-timestamp">
-                          <Clock size={12} />
-                          <span>{formatPostDateTime(post.created_at, post.entry_date)}</span>
-                          {post.updated_at && <span>• Edited</span>}
-                        </div>
-                      </div>
-                    </div>
+            {/* Social Feed Stream (Screenshot 2 Reddit / X / Facebook layout) */}
+            {(() => {
+              const visiblePosts =
+                feedFilter === 'All'
+                  ? reflectionPosts
+                  : reflectionPosts.filter((p) => (p.tag || 'Gratitude').toLowerCase() === feedFilter.toLowerCase());
 
-                    <div className="event-actions">
-                      <button
-                        type="button"
-                        className="icon-button"
-                        aria-label="Edit reflection post"
-                        title="Edit post"
-                        onClick={() => startEditReflectionPost(post)}
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        className="icon-button"
-                        aria-label="Delete reflection post"
-                        title="Delete post"
-                        onClick={() => deleteReflectionPost(post)}
-                      >
-                        <Trash2 size={17} />
-                      </button>
+              if (visiblePosts.length === 0) {
+                return (
+                  <div className="social-feed-container" style={{ textAlign: 'center', padding: '32px 18px' }}>
+                    <div className="motif-mark" style={{ marginBottom: 6 }}>
+                      <LotusMotif size={24} />
                     </div>
+                    <strong style={{ display: 'block', marginBottom: 4, color: '#1F181C', fontSize: 16 }}>
+                      No posts in this feed yet
+                    </strong>
+                    <p className="muted" style={{ margin: 0 }}>
+                      Write a title or status update above and tap <strong>Post</strong> to publish to your timeline.
+                    </p>
                   </div>
+                );
+              }
 
-                  <p className="post-body">{post.content}</p>
-                </article>
-              ))
-            )}
+              return (
+                <div className="social-feed-container">
+                  {visiblePosts.map((post) => {
+                    const channelSlug = `k/${(post.tag || 'remembrance').toLowerCase()}`;
+                    const commentsList = post.comments || [];
+                    const isCommentsOpen = openCommentPostId === post.id;
+                    const lines = post.content.split('\n');
+                    const displayTitle = post.title || lines[0];
+                    const displayBody = post.title ? post.content : lines.slice(1).join('\n').trim();
+
+                    return (
+                      <article className="social-post-item" key={post.id}>
+                        {/* Row 1: Avatar + k/channel • relative time • exact Date & Time + Topic Pill */}
+                        <div className="social-post-meta">
+                          <div className="social-meta-left">
+                            <div className="post-avatar sm">
+                              <LotusMotif size={15} />
+                            </div>
+                            <span className="social-channel-name">{channelSlug}</span>
+                            <span className="social-meta-dot">•</span>
+                            <span className="social-time-ago">{formatRelativeTime(post.created_at)}</span>
+                            <span className="social-meta-dot">•</span>
+                            <span className="social-exact-datetime">
+                              {formatPostDateTime(post.created_at, post.entry_date)}
+                              {post.updated_at ? ' (edited)' : ''}
+                            </span>
+                          </div>
+                          <span className="social-topic-pill">{post.tag || 'Remembrance'}</span>
+                        </div>
+
+                        {/* Row 2: Bold Headline (Screenshot 2 style) */}
+                        <h3 className="social-post-title">{displayTitle}</h3>
+
+                        {/* Row 3: Multi-line Post Body */}
+                        {displayBody && <p className="social-post-body">{displayBody}</p>}
+
+                        {/* Row 4: Bottom Action Pills (Heart/Like, Comment Thread, Share, Edit, Delete) */}
+                        <div className="social-post-actions">
+                          <button
+                            type="button"
+                            className={`social-action-pill ${post.liked ? 'liked' : ''}`}
+                            onClick={() => toggleLikePost(post)}
+                            title="Appreciate this reflection"
+                          >
+                            <Heart size={14} fill={post.liked ? 'currentColor' : 'none'} />
+                            <span>{post.likes ?? 1}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="social-action-pill"
+                            onClick={() => {
+                              setOpenCommentPostId(isCommentsOpen ? null : post.id);
+                              setCommentDraft('');
+                            }}
+                            title="View or add follow-up notes"
+                          >
+                            <MessageCircle size={14} />
+                            <span>{commentsList.length}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="social-action-pill"
+                            onClick={() => sharePost(post)}
+                            title="Share or copy post"
+                          >
+                            <span>Share</span>
+                            <Share2 size={13} />
+                          </button>
+
+                          <button
+                            type="button"
+                            className="social-action-pill"
+                            onClick={() => startEditReflectionPost(post)}
+                            title="Edit post"
+                          >
+                            <Pencil size={13} />
+                            <span>Edit</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="social-action-pill"
+                            onClick={() => deleteReflectionPost(post)}
+                            title="Delete post"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+
+                        {/* Expandable Comment / Thread Section under Post */}
+                        {isCommentsOpen && (
+                          <div className="social-comments-box">
+                            {commentsList.map((c) => (
+                              <div className="social-comment-item" key={c.id}>
+                                <div className="social-comment-meta">
+                                  <strong>Follow-up note</strong>
+                                  <span>{formatPostDateTime(c.created_at, post.entry_date)}</span>
+                                </div>
+                                <div>{c.text}</div>
+                              </div>
+                            ))}
+                            <div className="social-comment-input-row">
+                              <input
+                                type="text"
+                                placeholder="Add a comment or follow-up thought…"
+                                value={commentDraft}
+                                onChange={(e) => setCommentDraft(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    addCommentToPost(post);
+                                  }
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="composer-post-btn"
+                                disabled={!commentDraft.trim()}
+                                onClick={() => addCommentToPost(post)}
+                              >
+                                Reply
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
 
