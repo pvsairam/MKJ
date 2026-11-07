@@ -133,29 +133,39 @@ textarea {
 /* Sanctuary Top Header */
 header {
   position: relative;
-  padding: calc(18px + env(safe-area-inset-top)) 20px 15px;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 48px 16px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   text-align: center;
   background: linear-gradient(165deg, #381E31 0%, var(--plum) 60%, #5B2B45 100%);
   color: var(--cream);
   border-bottom: 1px solid rgba(181, 139, 76, 0.45);
 }
 
+/* Standalone iPhone Home Screen Web App extra status bar clearance */
+@media all and (display-mode: standalone) {
+  header {
+    padding-top: max(48px, calc(16px + env(safe-area-inset-top, 36px)));
+  }
+}
+
 header > div {
   flex: 1;
+  min-width: 0;
 }
 
 .header-ornament {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 7px;
   color: #DFC394;
-  letter-spacing: 0.16em;
-  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 header h1 {
@@ -176,8 +186,8 @@ header p {
 
 .icon-button {
   padding: 9px;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 40px;
+  min-height: 40px;
   background: transparent;
   color: var(--plum);
   border-radius: 10px;
@@ -186,8 +196,8 @@ header p {
 header .icon-button {
   color: #EAD6B6;
   position: absolute;
-  right: 12px;
-  top: calc(18px + env(safe-area-inset-top));
+  right: 8px;
+  bottom: 16px;
 }
 
 .eyebrow {
@@ -207,27 +217,70 @@ header .icon-button {
 .date-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  max-width: 360px;
+  max-width: 390px;
+  width: 100%;
   margin: 0 auto 16px;
 }
 
-.date-row label {
-  flex: 1;
-  font-size: 0;
+.date-row label.date-pill-label {
+  flex: 1 1 0%;
+  min-width: 0;
   position: relative;
-}
-
-.date-row input {
-  font-size: 16px;
-  font-weight: 600;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--cream);
   border: 1px solid var(--border-delicate);
   border-radius: 99px;
-  color: var(--plum);
-  padding: 6px 12px;
   min-height: 40px;
+  height: 40px;
+  padding: 0 14px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.date-row label.date-pill-label:focus-within {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(181, 139, 76, 0.15);
+}
+
+.date-pill-display {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--plum);
+  white-space: nowrap;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.date-pill-display svg {
+  color: var(--plum);
+  opacity: 0.78;
+  flex-shrink: 0;
+}
+
+.date-row input.date-native-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .date-row button {
@@ -245,14 +298,15 @@ header .icon-button {
 .date-row button.today-pill {
   border-radius: 99px;
   width: auto;
-  height: 36px;
-  min-height: 36px;
-  padding: 0 12px;
-  font-size: 12px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 13px;
+  font-size: 12.5px;
   font-weight: 600;
   background: #F3E7D3;
   border: 1px solid rgba(181, 139, 76, 0.4);
   color: var(--plum);
+  flex-shrink: 0;
 }
 
 /* Darshan Home Card */
@@ -1296,11 +1350,13 @@ header .icon-button {
 .month-nav {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   background: var(--ivory);
   padding: 4px 6px;
   border-radius: 99px;
   border: 1px solid var(--border-delicate);
+  max-width: 100%;
 }
 
 .month-nav button {
@@ -1312,24 +1368,33 @@ header .icon-button {
   background: var(--cream);
   color: var(--plum);
   border: 1px solid var(--border-delicate);
+  flex-shrink: 0;
 }
 
-.month-nav label {
+.month-nav label.month-pill-label {
   position: relative;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  padding: 2px 12px;
+  min-height: 34px;
+  cursor: pointer;
 }
 
-.month-nav input[type="month"] {
+.month-nav input.month-native-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
   border: 0;
-  background: transparent;
-  color: var(--plum);
-  font-weight: 600;
-  font-size: 16px;
-  padding: 2px 8px;
-  min-height: 34px;
-  text-align: center;
-  width: auto;
+  opacity: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 /* B. Monthly Overview — 3 Distinct Card Treatments */

@@ -35,6 +35,7 @@ import {
   Share2,
   Search,
   Check,
+  Calendar,
 } from 'lucide-react';
 import {
   db,
@@ -1560,12 +1561,23 @@ export default function App() {
             >
               <ChevronLeft size={18} />
             </button>
-            <label>
-              Devotional record date
+            <label className="date-pill-label">
+              <span className="date-pill-display">
+                <span>{format(new Date(date + 'T12:00:00'), 'dd-MM-yyyy')}</span>
+                <Calendar size={15} />
+              </span>
               <input
                 aria-label="Selected date"
+                className="date-native-input"
                 type="date"
                 value={date}
+                onClick={(e) => {
+                  try {
+                    (e.currentTarget as HTMLInputElement).showPicker?.();
+                  } catch {
+                    // Fallback to default browser picker trigger
+                  }
+                }}
                 onChange={(e) => e.target.value && changeDate(e.target.value)}
               />
             </label>
@@ -2422,14 +2434,23 @@ export default function App() {
                 <button type="button" aria-label="Previous month" onClick={() => shiftMonth(-1)}>
                   <ChevronLeft size={17} />
                 </button>
-                <label>
-                  <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }}>
-                    Select month and year
+                <label className="month-pill-label">
+                  <span className="date-pill-display">
+                    <span>{format(monthDateObj, 'MMMM yyyy')}</span>
+                    <Calendar size={14} />
                   </span>
                   <input
                     aria-label="Select month and year"
+                    className="month-native-input"
                     type="month"
                     value={month}
+                    onClick={(e) => {
+                      try {
+                        (e.currentTarget as HTMLInputElement).showPicker?.();
+                      } catch {
+                        // Fallback to default browser picker trigger
+                      }
+                    }}
                     onChange={(e) => e.target.value && setMonth(e.target.value)}
                   />
                 </label>
