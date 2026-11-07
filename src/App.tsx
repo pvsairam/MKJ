@@ -31,10 +31,7 @@ import {
   ChevronUp,
   Clock,
   Send,
-  MessageCircle,
-  Share2,
   Search,
-  Check,
   Calendar,
 } from 'lucide-react';
 import {
@@ -53,21 +50,12 @@ import {
 
 type Tab = 'home' | 'daily' | 'journal' | 'reflection' | 'temple' | 'reports';
 
-export interface ReflectionComment {
-  id: string;
-  text: string;
-  created_at: string;
-}
-
 export interface ReflectionPost {
   id: string;
   entry_date: string;
   title?: string;
   content: string;
   tag: string;
-  likes?: number;
-  liked?: boolean;
-  comments?: ReflectionComment[];
   created_at: string;
   updated_at?: string;
 }
@@ -103,9 +91,6 @@ function extractPostsFromReflectionRows(rows: ReflectionRow[]): ReflectionPost[]
               title: typeof p.title === 'string' && p.title.trim() ? p.title.trim() : undefined,
               content: trimmed,
               tag: typeof p.tag === 'string' && p.tag ? p.tag : 'Remembrance',
-              likes: typeof p.likes === 'number' ? p.likes : 0,
-              liked: Boolean(p.liked),
-              comments: Array.isArray(p.comments) ? p.comments : [],
               created_at: p.created_at || row.created_at || `${row.entry_date}T20:00:00.000Z`,
               updated_at: p.updated_at,
             });
@@ -142,9 +127,6 @@ function extractPostsFromReflectionRows(rows: ReflectionRow[]): ReflectionPost[]
         title: legacyTitle,
         content: legacyParts.join('\n\n'),
         tag: 'Remembrance',
-        likes: 1,
-        liked: true,
-        comments: [],
         created_at: row.created_at || `${row.entry_date}T20:00:00.000Z`,
         updated_at: row.updated_at || undefined,
       });
@@ -567,7 +549,7 @@ export default function App() {
   const [journal, setJournal] = useState<Record<string, string>>({});
   const [isDirty, setIsDirty] = useState(false);
 
-  // Reflection Feed (Reddit / X / Facebook social timeline) state
+  // Reflection Feed state
   const [reflectionPosts, setReflectionPosts] = useState<ReflectionPost[]>([]);
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
@@ -575,10 +557,7 @@ export default function App() {
   const [feedFilter, setFeedFilter] = useState<string>('All');
   const [editingPost, setEditingPost] = useState<ReflectionPost | null>(null);
   const [postingReflection, setPostingReflection] = useState(false);
-  const [openCommentPostId, setOpenCommentPostId] = useState<string | null>(null);
-  const [commentDraft, setCommentDraft] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
 
   // Temple & Seva state
   const [events, setEvents] = useState<TempleEventRow[]>([]);
@@ -881,9 +860,6 @@ export default function App() {
         title: trimmedTitle || undefined,
         content: trimmedContent || trimmedTitle,
         tag: postTag || 'Gratitude',
-        likes: 1,
-        liked: true,
-        comments: [],
         created_at: nowIso,
       };
       updatedPostsForDate = [newPost, ...existingForDate];
@@ -901,66 +877,6 @@ export default function App() {
       setNotice(editingPost ? 'Post updated.' : 'Published to your reflection feed.');
     }
     setPostingReflection(false);
-  }
-
-  async function toggleLikePost(target: ReflectionPost) {
-    const nextLiked = !target.liked;
-    const nextLikes = Math.max(0, (target.likes || 0) + (nextLiked ? 1 : -1));
-    const updatedPost: ReflectionPost = { ...target, liked: nextLiked, likes: nextLikes };
-    const updatedForDate = reflectionPosts
-      .filter((p) => p.entry_date === target.entry_date)
-      .map((p) => (p.id === target.id ? updatedPost : p));
-    const nextAll = reflectionPosts.map((p) => (p.id === target.id ? updatedPost : p));
-    await persistDatePosts(target.entry_date, updatedForDate, nextAll);
-  }
-
-  async function addCommentToPost(target: ReflectionPost) {
-    const trimmed = commentDraft.trim();
-    if (!trimmed) return;
-    const newComment: ReflectionComment = {
-      id: `c_${Date.now()}`,
-      text: trimmed,
-      created_at: new Date().toISOString(),
-    };
-    const updatedPost: ReflectionPost = {
-      ...target,
-      comments: [...(target.comments || []), newComment],
-    };
-    const updatedForDate = reflectionPosts
-      .filter((p) => p.entry_date === target.entry_date)
-      .map((p) => (p.id === target.id ? updatedPost : p));
-    const nextAll = reflectionPosts.map((p) => (p.id === target.id ? updatedPost : p));
-    setCommentDraft('');
-    await persistDatePosts(target.entry_date, updatedForDate, nextAll);
-  }
-
-  async function deleteCommentFromPost(target: ReflectionPost, commentId: string) {
-    const updatedPost: ReflectionPost = {
-      ...target,
-      comments: (target.comments || []).filter((c) => c.id !== commentId),
-    };
-    const updatedForDate = reflectionPosts
-      .filter((p) => p.entry_date === target.entry_date)
-      .map((p) => (p.id === target.id ? updatedPost : p));
-    const nextAll = reflectionPosts.map((p) => (p.id === target.id ? updatedPost : p));
-    await persistDatePosts(target.entry_date, updatedForDate, nextAll);
-  }
-
-  async function sharePost(target: ReflectionPost) {
-    const shareText = target.title ? `${target.title}\n\n${target.content}` : target.content;
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({ title: target.title || 'My Krishna Journey Reflection', text: shareText });
-        return;
-      } catch {
-        // Fallback to clipboard
-      }
-    }
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(shareText);
-      setCopiedPostId(target.id);
-      setTimeout(() => setCopiedPostId((prev) => (prev === target.id ? null : prev)), 2000);
-    }
   }
 
   function startEditReflectionPost(post: ReflectionPost) {
@@ -2129,9 +2045,6 @@ export default function App() {
                 <div className="social-feed-container">
                   {visiblePosts.map((post) => {
                     const channelSlug = `k/${(post.tag || 'remembrance').toLowerCase()}`;
-                    const commentsList = post.comments || [];
-                    const isCommentsOpen = openCommentPostId === post.id;
-                    const isCopied = copiedPostId === post.id;
                     const lines = post.content.split('\n');
                     const displayTitle = post.title || lines[0];
                     const displayBody = post.title ? post.content : lines.slice(1).join('\n').trim();
@@ -2177,102 +2090,11 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Row 2: Bold Headline (Screenshot 2 style) */}
+                        {/* Row 2: Bold Headline */}
                         <h3 className="social-post-title">{displayTitle}</h3>
 
                         {/* Row 3: Multi-line Post Body */}
-                        {displayBody && <p className="social-post-body">{displayBody}</p>}
-
-                        {/* Row 4: Clean 3-Pill Bottom Engagement Bar (Screenshot 2 style) */}
-                        <div className="social-post-actions">
-                          <button
-                            type="button"
-                            className={`social-action-pill ${post.liked ? 'liked' : ''}`}
-                            onClick={() => toggleLikePost(post)}
-                            title="Appreciate this reflection"
-                          >
-                            <Heart size={14} fill={post.liked ? 'currentColor' : 'none'} />
-                            <span>{post.likes ?? 1}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className={`social-action-pill ${isCommentsOpen ? 'active-thread' : ''}`}
-                            onClick={() => {
-                              setOpenCommentPostId(isCommentsOpen ? null : post.id);
-                              setCommentDraft('');
-                            }}
-                            title="View or add follow-up notes"
-                          >
-                            <MessageCircle size={14} />
-                            <span>{commentsList.length}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className="social-action-pill"
-                            onClick={() => sharePost(post)}
-                            title="Share or copy post"
-                          >
-                            {isCopied ? (
-                              <>
-                                <Check size={13} />
-                                <span>Copied</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>Share</span>
-                                <Share2 size={13} />
-                              </>
-                            )}
-                          </button>
-                        </div>
-
-                        {/* Expandable Threaded Comment Section */}
-                        {isCommentsOpen && (
-                          <div className="social-comments-box">
-                            {commentsList.map((c) => (
-                              <div className="social-comment-item" key={c.id}>
-                                <div className="social-comment-meta">
-                                  <strong>Follow-up note • {formatPostDateTime(c.created_at, post.entry_date)}</strong>
-                                  <button
-                                    type="button"
-                                    className="social-icon-action danger"
-                                    style={{ width: 22, minHeight: 22 }}
-                                    title="Delete comment"
-                                    aria-label="Delete comment"
-                                    onClick={() => deleteCommentFromPost(post, c.id)}
-                                  >
-                                    <X size={12} />
-                                  </button>
-                                </div>
-                                <div>{c.text}</div>
-                              </div>
-                            ))}
-                            <div className="social-comment-input-row">
-                              <input
-                                type="text"
-                                placeholder="Write a follow-up thought or reply…"
-                                value={commentDraft}
-                                onChange={(e) => setCommentDraft(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    addCommentToPost(post);
-                                  }
-                                }}
-                              />
-                              <button
-                                type="button"
-                                className="composer-post-btn"
-                                disabled={!commentDraft.trim()}
-                                onClick={() => addCommentToPost(post)}
-                              >
-                                Reply
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                        {displayBody && <p className="social-post-body" style={{ marginBottom: 2 }}>{displayBody}</p>}
                       </article>
                     );
                   })}
