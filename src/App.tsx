@@ -29,6 +29,8 @@ import {
   Target,
   ChevronDown,
   ChevronUp,
+  Clock,
+  Send,
 } from 'lucide-react';
 import {
   db,
@@ -36,7 +38,6 @@ import {
   dateKey,
   dailyActivities,
   journalPrompts,
-  questions,
   templeEventTypes,
   templeEventMetaMap,
   formatEventQuantity,
@@ -45,6 +46,92 @@ import {
 } from './lib';
 
 type Tab = 'home' | 'daily' | 'journal' | 'reflection' | 'temple' | 'reports';
+
+export interface ReflectionPost {
+  id: string;
+  entry_date: string;
+  content: string;
+  tag: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+interface ReflectionRow {
+  id?: string;
+  entry_date: string;
+  answers?: Record<string, unknown> | null;
+  pleasure?: string | null;
+  sense_gratification?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+const reflectionTags = ['Gratitude', 'Remembrance', 'Prayer', 'Realization', 'Seva'] as const;
+
+function extractPostsFromReflectionRows(rows: ReflectionRow[]): ReflectionPost[] {
+  const posts: ReflectionPost[] = [];
+
+  for (const row of rows) {
+    const ans = row.answers && typeof row.answers === 'object' ? row.answers : {};
+    const rawPosts = (ans as { posts?: unknown }).posts;
+
+    if (Array.isArray(rawPosts) && rawPosts.length > 0) {
+      for (const item of rawPosts) {
+        if (item && typeof item === 'object' && typeof (item as { content?: unknown }).content === 'string') {
+          const p = item as Partial<ReflectionPost>;
+          const trimmed = p.content?.trim() || '';
+          if (trimmed) {
+            posts.push({
+              id: p.id || `${row.entry_date}_${ posts.length }`,
+              entry_date: p.entry_date || row.entry_date,
+              content: trimmed,
+              tag: typeof p.tag === 'string' ? p.tag : 'Remembrance',
+              created_at: p.created_at || row.created_at || `${row.entry_date}T20:00:00.000Z`,
+              updated_at: p.updated_at,
+            });
+          }
+        }
+      }
+      continue;
+    }
+
+    // Legacy reflection row compatibility so no previous reflection is ever hidden
+    const legacyParts: string[] = [];
+    if (typeof row.pleasure === 'string' && row.pleasure.trim()) {
+      legacyParts.push(row.pleasure.trim());
+    }
+    if (typeof row.sense_gratification === 'string' && row.sense_gratification.trim()) {
+      legacyParts.push(row.sense_gratification.trim());
+    }
+    for (const [k, v] of Object.entries(ans)) {
+      if (k.startsWith('comment_') && typeof v === 'string' && v.trim()) {
+        legacyParts.push(v.trim());
+      }
+    }
+
+    if (legacyParts.length > 0) {
+      posts.push({
+        id: `legacy_${row.entry_date}`,
+        entry_date: row.entry_date,
+        content: legacyParts.join('\n\n'),
+        tag: 'Remembrance',
+        created_at: row.created_at || `${row.entry_date}T20:00:00.000Z`,
+        updated_at: row.updated_at || undefined,
+      });
+    }
+  }
+
+  return posts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+function formatPostDateTime(isoString: string, fallbackDate: string): string {
+  const parsed = new Date(isoString);
+  if (!Number.isNaN(parsed.getTime())) {
+    return format(parsed, 'd MMM yyyy • h:mm a');
+  }
+  const fallback = new Date(fallbackDate + 'T12:00:00');
+  return !Number.isNaN(fallback.getTime()) ? format(fallback, 'd MMM yyyy') : fallbackDate;
+}
 
 type Daily = {
   japa_rounds: number | null;
@@ -434,10 +521,14 @@ export default function App() {
   const [daily, setDaily] = useState<Daily>(emptyDaily);
   const [activities, setActivities] = useState<Record<string, string>>({});
   const [journal, setJournal] = useState<Record<string, string>>({});
-  const [reflection, setReflection] = useState<Record<string, string>>({});
-  const [pleasure, setPleasure] = useState('');
-  const [sense, setSense] = useState('');
   const [isDirty, setIsDirty] = useState(false);
+
+  // Reflection Feed (X / Facebook status post timeline) state
+  const [reflectionPosts, setReflectionPosts] = useState<ReflectionPost[]>([]);
+  const [postContent, setPostContent] = useState('');
+  const [postTag, setPostTag] = useState<string>('Gratitude');
+  const [editingPost, setEditingPost] = useState<ReflectionPost | null>(null);
+  const [postingReflection, setPostingReflection] = useState(false);
 
   // Temple & Seva state
   const [events, setEvents] = useState<TempleEventRow[]>([]);
@@ -558,7 +649,7 @@ export default function App() {
     };
   }, [session]);
 
-  // 3. Load Records for Selected Date
+  // 3. Load Records for Selected Date & Reflection Timeline Feed
   useEffect(() => {
     if (!db || !session || !allowed) return;
     let cancelled = false;
@@ -568,7 +659,7 @@ export default function App() {
       db.from('daily_records').select('*').eq('entry_date', date).maybeSingle(),
       db.from('activity_entries').select('*').eq('entry_date', date),
       db.from('journal_entries').select('*').eq('entry_date', date).maybeSingle(),
-      db.from('reflections').select('*').eq('entry_date', date).maybeSingle(),
+      db.from('reflections').select('*').order('entry_date', { ascending: false }).limit(100),
       db.from('temple_events').select('*').eq('event_date', date).order('created_at', { ascending: false }),
     ]).then(([d, a, j, r, t]) => {
       if (cancelled) return;
@@ -591,9 +682,7 @@ export default function App() {
       );
       setActivities(Object.fromEntries((a.data || []).map((x) => [x.activity_key, x.status])));
       setJournal((j.data?.answers as Record<string, string>) || {});
-      setReflection((r.data?.answers as Record<string, string>) || {});
-      setPleasure(r.data?.pleasure || '');
-      setSense(r.data?.sense_gratification || '');
+      setReflectionPosts(extractPostsFromReflectionRows((r.data as ReflectionRow[]) || []));
       setEvents((t.data as TempleEventRow[]) || []);
       setEditingEventId(null);
       setIsDirty(false);
@@ -605,7 +694,7 @@ export default function App() {
     };
   }, [session, allowed, date]);
 
-  // 4. Save Daily Offering / Journal / Reflection
+  // 4. Save Daily Offering / Journal
   async function save(successMessage = 'Offering saved with gratitude.') {
     if (!db || !session) return;
     const ints = [daily.japa_rounds, daily.book_minutes, daily.book_pages, daily.lecture_minutes];
@@ -654,27 +743,6 @@ export default function App() {
       queries.push(db.from('journal_entries').delete().eq('user_id', uid).eq('entry_date', date));
     }
 
-    const hasReflection =
-      Object.values(reflection).some((v) => String(v || '').trim() !== '') ||
-      pleasure.trim() !== '' ||
-      sense.trim() !== '';
-    if (hasReflection) {
-      queries.push(
-        db.from('reflections').upsert(
-          {
-            user_id: uid,
-            entry_date: date,
-            answers: reflection,
-            pleasure,
-            sense_gratification: sense,
-          },
-          { onConflict: 'user_id,entry_date' }
-        )
-      );
-    } else {
-      queries.push(db.from('reflections').delete().eq('user_id', uid).eq('entry_date', date));
-    }
-
     for (const act of dailyActivities) {
       const status = activities[act];
       if (status) {
@@ -703,6 +771,129 @@ export default function App() {
     }
     setNotice(failures.length ? 'Some records could not be saved: ' + failures.join('; ') : successMessage);
     setBusy(false);
+  }
+
+  // 4b. Publish, Edit, or Delete a Reflection Status Post
+  async function submitReflectionPost() {
+    if (!db || !session) return;
+    const trimmed = postContent.trim();
+    if (!trimmed) {
+      setNotice('Please write your reflection before posting.');
+      return;
+    }
+
+    setPostingReflection(true);
+    setNotice('');
+    const uid = session.user.id;
+    const nowIso = new Date().toISOString();
+    const targetDate = editingPost ? editingPost.entry_date : dateKey(new Date());
+
+    const existingForDate = reflectionPosts.filter((p) => p.entry_date === targetDate);
+    let updatedPostsForDate: ReflectionPost[];
+    let nextAllPosts: ReflectionPost[];
+
+    if (editingPost) {
+      const updatedPost: ReflectionPost = {
+        ...editingPost,
+        content: trimmed,
+        tag: postTag,
+        updated_at: nowIso,
+      };
+      updatedPostsForDate = existingForDate.map((p) => (p.id === editingPost.id ? updatedPost : p));
+      nextAllPosts = reflectionPosts.map((p) => (p.id === editingPost.id ? updatedPost : p));
+    } else {
+      const newPost: ReflectionPost = {
+        id:
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `post_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        entry_date: targetDate,
+        content: trimmed,
+        tag: postTag,
+        created_at: nowIso,
+      };
+      updatedPostsForDate = [newPost, ...existingForDate];
+      nextAllPosts = [newPost, ...reflectionPosts];
+    }
+
+    const { error } = await db.from('reflections').upsert(
+      {
+        user_id: uid,
+        entry_date: targetDate,
+        answers: { posts: updatedPostsForDate },
+        pleasure: updatedPostsForDate.map((p) => p.content).join('\n\n'),
+        sense_gratification: '',
+      },
+      { onConflict: 'user_id,entry_date' }
+    );
+
+    if (error) {
+      setNotice('Could not publish reflection: ' + error.message);
+    } else {
+      setReflectionPosts(nextAllPosts);
+      setPostContent('');
+      setEditingPost(null);
+      setNotice(editingPost ? 'Reflection post updated.' : 'Reflection posted to your sanctuary feed.');
+    }
+    setPostingReflection(false);
+  }
+
+  function startEditReflectionPost(post: ReflectionPost) {
+    setEditingPost(post);
+    setPostContent(post.content);
+    setPostTag(post.tag || 'Gratitude');
+    setNotice('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelEditReflectionPost() {
+    setEditingPost(null);
+    setPostContent('');
+    setPostTag('Gratitude');
+    setNotice('');
+  }
+
+  async function deleteReflectionPost(target: ReflectionPost) {
+    if (!db || !session || !window.confirm('Delete this reflection post?')) return;
+    setPostingReflection(true);
+    setNotice('');
+    const uid = session.user.id;
+    const remainingForDate = reflectionPosts.filter(
+      (p) => p.entry_date === target.entry_date && p.id !== target.id
+    );
+
+    let err: { message: string } | null = null;
+    if (remainingForDate.length > 0) {
+      const res = await db.from('reflections').upsert(
+        {
+          user_id: uid,
+          entry_date: target.entry_date,
+          answers: { posts: remainingForDate },
+          pleasure: remainingForDate.map((p) => p.content).join('\n\n'),
+          sense_gratification: '',
+        },
+        { onConflict: 'user_id,entry_date' }
+      );
+      err = res.error;
+    } else {
+      const res = await db
+        .from('reflections')
+        .delete()
+        .eq('user_id', uid)
+        .eq('entry_date', target.entry_date);
+      err = res.error;
+    }
+
+    if (err) {
+      setNotice('Could not delete post: ' + err.message);
+    } else {
+      setReflectionPosts((prev) => prev.filter((p) => p.id !== target.id));
+      if (editingPost?.id === target.id) {
+        cancelEditReflectionPost();
+      }
+      setNotice('Reflection post removed.');
+    }
+    setPostingReflection(false);
   }
 
   // 5. Save Personal Intentions (Goals)
@@ -962,9 +1153,13 @@ export default function App() {
 
       let reflectionDays = 0;
       for (const rRow of r.data || []) {
-        const ans = (rRow.answers as Record<string, string>) || {};
+        const ans = (rRow.answers as Record<string, unknown>) || {};
+        const postsArr = Array.isArray((ans as { posts?: unknown }).posts)
+          ? (ans as { posts: unknown[] }).posts
+          : [];
         const hasRefl =
-          Object.values(ans).some((v) => String(v || '').trim() !== '') ||
+          postsArr.length > 0 ||
+          Object.values(ans).some((v) => typeof v === 'string' && v.trim() !== '') ||
           Boolean(rRow.pleasure?.trim()) ||
           Boolean(rRow.sense_gratification?.trim());
         if (hasRefl) {
@@ -1161,10 +1356,7 @@ export default function App() {
   const japaTarget = goals.japa_rounds || 16;
   const completedPracticesCount = dailyActivities.filter((a) => activities[a] === 'yes').length;
   const hasRealizationsToday = ['0', '1', '2', '3', '4'].some((k) => String(journal[k] || '').trim() !== '');
-  const hasReflectionToday =
-    Object.values(reflection).some((v) => String(v || '').trim() !== '') ||
-    pleasure.trim() !== '' ||
-    sense.trim() !== '';
+  const hasReflectionToday = reflectionPosts.some((p) => p.entry_date === date);
 
   function renderGoalsEditor() {
     return (
@@ -1236,7 +1428,7 @@ export default function App() {
       </header>
 
       <main className="content">
-        {tab !== 'reports' && (
+        {tab !== 'reports' && tab !== 'reflection' && (
           <div className="date-row">
             <button
               type="button"
@@ -1339,7 +1531,13 @@ export default function App() {
               <button type="button" className="offering-tile" onClick={() => switchTab('reflection')}>
                 <Heart />
                 <span className="tile-title">Reflection</span>
-                <small>{hasReflectionToday ? 'Evening reflection saved' : 'End your day in gratitude'}</small>
+                <small>
+                  {hasReflectionToday
+                    ? 'Reflection posted today'
+                    : reflectionPosts.length > 0
+                    ? `${reflectionPosts.length} reflection${reflectionPosts.length === 1 ? '' : 's'} in feed`
+                    : 'Share a reflection'}
+                </small>
               </button>
             </div>
 
@@ -1623,7 +1821,7 @@ export default function App() {
         )}
 
         {/* ==========================================
-            4. EVENING REFLECTION
+            4. REFLECTION FEED (X / FACEBOOK STATUS TIMELINE)
            ========================================== */}
         {tab === 'reflection' && (
           <div className="evening-surface">
@@ -1631,97 +1829,149 @@ export default function App() {
               <div className="heading-motif">
                 <LotusMotif size={26} />
               </div>
-              <span className="eyebrow">AT THE CLOSE OF THE DAY</span>
-              <h2>My Evening Reflection</h2>
-              <p>A quiet moment of honesty, gratitude and remembrance.</p>
+              <span className="eyebrow">SANCTUARY FEED</span>
+              <h2>Heartfelt Reflections</h2>
+              <p>Share your thoughts, prayers, and moments of gratitude with Sri Krishna.</p>
             </div>
 
-            <p className="muted" style={{ marginTop: 0 }}>
-              A private space for honest introspection, never spiritual scoring.
-            </p>
-
-            {questions.map((q, i) => {
-              const current = reflection['status_' + i] || '';
-              return (
-                <div className="card" key={q}>
-                  <strong style={{ display: 'block', marginBottom: 10, fontSize: 15 }}>
-                    {i + 1}. {q}
-                  </strong>
-                  <div className="status-pills" role="group" aria-label={q} style={{ marginBottom: 10 }}>
-                    {(
-                      [
-                        { value: 'yes', label: 'Yes', activeClass: 'active-yes' },
-                        { value: 'partial', label: 'Partially', activeClass: 'active-partial' },
-                        { value: 'no', label: 'No', activeClass: 'active-no' },
-                      ] as const
-                    ).map((opt) => {
-                      const isActive = current === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          aria-pressed={isActive}
-                          className={`status-pill ${isActive ? opt.activeClass : ''}`}
-                          onClick={() => {
-                            setIsDirty(true);
-                            setReflection((prev) => ({
-                              ...prev,
-                              ['status_' + i]: prev['status_' + i] === opt.value ? '' : opt.value,
-                            }));
-                          }}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <textarea
-                    rows={2}
-                    placeholder="Optional reflection notes…"
-                    value={reflection['comment_' + i] || ''}
-                    onChange={(e) => {
-                      setIsDirty(true);
-                      setReflection((x) => ({ ...x, ['comment_' + i]: e.target.value }));
-                    }}
-                  />
+            {/* X / Facebook Style Status Post Composer */}
+            <section className="reflection-composer" aria-label="Create a reflection post">
+              <div className="composer-top">
+                <div className="post-avatar">
+                  <LotusMotif size={20} />
                 </div>
-              );
-            })}
+                <div className="composer-meta">
+                  <strong>{editingPost ? 'Edit Reflection Post' : 'Share a Reflection'}</strong>
+                  <span>
+                    <Clock size={12} />
+                    {editingPost
+                      ? `Originally posted ${formatPostDateTime(editingPost.created_at, editingPost.entry_date)}`
+                      : format(new Date(), 'd MMM yyyy • h:mm a')}
+                  </span>
+                </div>
+              </div>
 
-            <label className="card field">
-              <strong>What did I do today specifically for Krishna's pleasure?</strong>
               <textarea
+                className="composer-textarea"
                 rows={4}
-                placeholder="Write with gratitude…"
-                value={pleasure}
-                onChange={(e) => {
-                  setIsDirty(true);
-                  setPleasure(e.target.value);
-                }}
+                aria-label="Reflection post content"
+                placeholder="What is in your heart today? Write a reflection, prayer, or moment of gratitude for Sri Krishna…"
+                value={postContent}
+                onChange={(e) => setPostContent(e.target.value)}
               />
-            </label>
 
-            <label className="card field">
-              <strong>Where did I act for my own sense gratification instead of Krishna's pleasure?</strong>
-              <textarea
-                rows={4}
-                placeholder="Offer an honest prayer for tomorrow…"
-                value={sense}
-                onChange={(e) => {
-                  setIsDirty(true);
-                  setSense(e.target.value);
-                }}
-              />
-            </label>
+              <div className="reflection-tags" role="group" aria-label="Reflection mood or topic">
+                {reflectionTags.map((tag) => {
+                  const isActive = postTag === tag;
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      aria-pressed={isActive}
+                      className={`reflection-tag-btn ${isActive ? 'active' : ''}`}
+                      onClick={() => setPostTag((prev) => (prev === tag ? '' : tag))}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
 
-            <button
-              type="button"
-              className="save"
-              disabled={busy || loading}
-              onClick={() => save('Evening reflection saved.')}
-            >
-              <Heart size={18} /> {busy ? 'Saving…' : 'Save My Reflection'}
-            </button>
+              <div className="composer-footer">
+                {editingPost ? (
+                  <button type="button" className="secondary-btn" onClick={cancelEditReflectionPost}>
+                    Cancel Edit
+                  </button>
+                ) : (
+                  <small className="muted" style={{ fontSize: 12 }}>
+                    Private sanctuary feed • Saved with date & time
+                  </small>
+                )}
+
+                <button
+                  type="button"
+                  className="composer-post-btn"
+                  disabled={postingReflection || !postContent.trim()}
+                  onClick={submitReflectionPost}
+                >
+                  <Send size={15} />
+                  {postingReflection
+                    ? 'Posting…'
+                    : editingPost
+                    ? 'Update Post'
+                    : 'Post Reflection'}
+                </button>
+              </div>
+            </section>
+
+            {/* Chronological Feed of Posts */}
+            <div className="reflection-feed-header">
+              <h3>Your Reflection Timeline</h3>
+              <span>
+                {reflectionPosts.length} {reflectionPosts.length === 1 ? 'post' : 'posts'}
+              </span>
+            </div>
+
+            {reflectionPosts.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '28px 18px' }}>
+                <div className="motif-mark" style={{ marginBottom: 6 }}>
+                  <LotusMotif size={24} />
+                </div>
+                <strong style={{ display: 'block', marginBottom: 4, color: 'var(--plum)' }}>
+                  Your reflection feed is quiet
+                </strong>
+                <p className="muted" style={{ margin: 0 }}>
+                  Write a status post above and tap <strong>Post Reflection</strong>. Every reflection you share will
+                  appear right here with its date and time.
+                </p>
+              </div>
+            ) : (
+              reflectionPosts.map((post) => (
+                <article className="reflection-post-card" key={post.id}>
+                  <div className="post-header">
+                    <div className="post-author-wrap">
+                      <div className="post-avatar">
+                        <LotusMotif size={18} />
+                      </div>
+                      <div className="post-author-info">
+                        <div className="post-author-line">
+                          <strong>Devotee Reflection</strong>
+                          {post.tag && <span className="post-tag-badge">{post.tag}</span>}
+                        </div>
+                        <div className="post-timestamp">
+                          <Clock size={12} />
+                          <span>{formatPostDateTime(post.created_at, post.entry_date)}</span>
+                          {post.updated_at && <span>• Edited</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="event-actions">
+                      <button
+                        type="button"
+                        className="icon-button"
+                        aria-label="Edit reflection post"
+                        title="Edit post"
+                        onClick={() => startEditReflectionPost(post)}
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-button"
+                        aria-label="Delete reflection post"
+                        title="Delete post"
+                        onClick={() => deleteReflectionPost(post)}
+                      >
+                        <Trash2 size={17} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="post-body">{post.content}</p>
+                </article>
+              ))
+            )}
           </div>
         )}
 
