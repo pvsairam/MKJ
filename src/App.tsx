@@ -11,7 +11,6 @@ import {
 } from 'date-fns';
 import {
   BookOpen,
-  Heart,
   Home,
   Landmark,
   BarChart3,
@@ -29,9 +28,6 @@ import {
   Target,
   ChevronDown,
   ChevronUp,
-  Clock,
-  Send,
-  Search,
   Calendar,
 } from 'lucide-react';
 import {
@@ -40,7 +36,6 @@ import {
   dateKey,
   dailyActivities,
   journalPrompts,
-  questions,
   templeEventTypes,
   templeEventMetaMap,
   formatEventQuantity,
@@ -48,116 +43,7 @@ import {
   type TempleEventType,
 } from './lib';
 
-type Tab = 'home' | 'daily' | 'journal' | 'reflection' | 'temple' | 'reports';
-
-export interface ReflectionPost {
-  id: string;
-  entry_date: string;
-  title?: string;
-  content: string;
-  tag: string;
-  created_at: string;
-  updated_at?: string;
-}
-
-interface ReflectionRow {
-  id?: string;
-  entry_date: string;
-  answers?: Record<string, unknown> | null;
-  pleasure?: string | null;
-  sense_gratification?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-}
-
-const reflectionTags = ['Gratitude', 'Remembrance', 'Prayer', 'Realization', 'Seva'] as const;
-
-function extractPostsFromReflectionRows(rows: ReflectionRow[]): ReflectionPost[] {
-  const posts: ReflectionPost[] = [];
-
-  for (const row of rows) {
-    const ans = row.answers && typeof row.answers === 'object' ? row.answers : {};
-    const rawPosts = (ans as { posts?: unknown }).posts;
-
-    if (Array.isArray(rawPosts) && rawPosts.length > 0) {
-      for (const item of rawPosts) {
-        if (item && typeof item === 'object' && typeof (item as { content?: unknown }).content === 'string') {
-          const p = item as Partial<ReflectionPost>;
-          const trimmed = p.content?.trim() || '';
-          if (trimmed) {
-            posts.push({
-              id: p.id || `${row.entry_date}_${posts.length}`,
-              entry_date: p.entry_date || row.entry_date,
-              title: typeof p.title === 'string' && p.title.trim() ? p.title.trim() : undefined,
-              content: trimmed,
-              tag: typeof p.tag === 'string' && p.tag ? p.tag : 'Remembrance',
-              created_at: p.created_at || row.created_at || `${row.entry_date}T20:00:00.000Z`,
-              updated_at: p.updated_at,
-            });
-          }
-        }
-      }
-      continue;
-    }
-
-    // Legacy reflection row compatibility (converts old question comments / pleasure notes into social feed posts)
-    let legacyTitle: string | undefined;
-    const legacyParts: string[] = [];
-    if (typeof row.pleasure === 'string' && row.pleasure.trim()) {
-      legacyTitle = "Offered for Krishna's Pleasure";
-      legacyParts.push(row.pleasure.trim());
-    }
-    if (typeof row.sense_gratification === 'string' && row.sense_gratification.trim()) {
-      legacyParts.push(row.sense_gratification.trim());
-    }
-    for (const [k, v] of Object.entries(ans)) {
-      if (k.startsWith('comment_') && typeof v === 'string' && v.trim()) {
-        const qIdx = Number(k.replace('comment_', ''));
-        if (!legacyTitle && !Number.isNaN(qIdx) && questions[qIdx]) {
-          legacyTitle = questions[qIdx];
-        }
-        legacyParts.push(v.trim());
-      }
-    }
-
-    if (legacyParts.length > 0) {
-      posts.push({
-        id: `legacy_${row.entry_date}`,
-        entry_date: row.entry_date,
-        title: legacyTitle,
-        content: legacyParts.join('\n\n'),
-        tag: 'Remembrance',
-        created_at: row.created_at || `${row.entry_date}T20:00:00.000Z`,
-        updated_at: row.updated_at || undefined,
-      });
-    }
-  }
-
-  return posts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-}
-
-function formatPostDateTime(isoString: string, fallbackDate: string): string {
-  const parsed = new Date(isoString);
-  if (!Number.isNaN(parsed.getTime())) {
-    return format(parsed, 'd MMM yyyy, h:mm a');
-  }
-  const fallback = new Date(fallbackDate + 'T12:00:00');
-  return !Number.isNaN(fallback.getTime()) ? format(fallback, 'd MMM yyyy') : fallbackDate;
-}
-
-function formatRelativeTime(isoString: string): string {
-  const parsed = new Date(isoString);
-  if (Number.isNaN(parsed.getTime())) return 'Recently';
-  const diffSec = Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 1000));
-  if (diffSec < 60) return 'Just now';
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr} hr ago`;
-  const diffDays = Math.floor(diffHr / 24);
-  if (diffDays < 30) return `${diffDays}d ago`;
-  return format(parsed, 'd MMM');
-}
+type Tab = 'home' | 'daily' | 'journal' | 'temple' | 'reports';
 
 type Daily = {
   japa_rounds: number | null;
@@ -251,7 +137,6 @@ const navTabs: { id: Tab; label: string; Icon: typeof Home }[] = [
   { id: 'journal', label: 'Journal', Icon: BookOpen },
   { id: 'temple', label: 'Seva', Icon: Landmark },
   { id: 'reports', label: 'Offerings', Icon: BarChart3 },
-  { id: 'reflection', label: 'Reflect', Icon: Heart },
 ];
 
 /* Bespoke Indian Heritage SVG Motifs (No emojis or generic clip art) */
@@ -549,16 +434,6 @@ export default function App() {
   const [journal, setJournal] = useState<Record<string, string>>({});
   const [isDirty, setIsDirty] = useState(false);
 
-  // Reflection Feed state
-  const [reflectionPosts, setReflectionPosts] = useState<ReflectionPost[]>([]);
-  const [postTitle, setPostTitle] = useState('');
-  const [postContent, setPostContent] = useState('');
-  const [postTag, setPostTag] = useState<string>('Gratitude');
-  const [feedFilter, setFeedFilter] = useState<string>('All');
-  const [editingPost, setEditingPost] = useState<ReflectionPost | null>(null);
-  const [postingReflection, setPostingReflection] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
   // Temple & Seva state
   const [events, setEvents] = useState<TempleEventRow[]>([]);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
@@ -678,7 +553,7 @@ export default function App() {
     };
   }, [session]);
 
-  // 3. Load Records for Selected Date & Reflection Timeline Feed
+  // 3. Load Records for Selected Date
   useEffect(() => {
     if (!db || !session || !allowed) return;
     let cancelled = false;
@@ -688,11 +563,10 @@ export default function App() {
       db.from('daily_records').select('*').eq('entry_date', date).maybeSingle(),
       db.from('activity_entries').select('*').eq('entry_date', date),
       db.from('journal_entries').select('*').eq('entry_date', date).maybeSingle(),
-      db.from('reflections').select('*').order('entry_date', { ascending: false }).limit(100),
       db.from('temple_events').select('*').eq('event_date', date).order('created_at', { ascending: false }),
-    ]).then(([d, a, j, r, t]) => {
+    ]).then(([d, a, j, t]) => {
       if (cancelled) return;
-      const err = [d.error, a.error, j.error, r.error, t.error].find(Boolean);
+      const err = [d.error, a.error, j.error, t.error].find(Boolean);
       if (err) {
         setNotice(err.message);
         setLoading(false);
@@ -711,7 +585,6 @@ export default function App() {
       );
       setActivities(Object.fromEntries((a.data || []).map((x) => [x.activity_key, x.status])));
       setJournal((j.data?.answers as Record<string, string>) || {});
-      setReflectionPosts(extractPostsFromReflectionRows((r.data as ReflectionRow[]) || []));
       setEvents((t.data as TempleEventRow[]) || []);
       setEditingEventId(null);
       setIsDirty(false);
@@ -800,140 +673,6 @@ export default function App() {
     }
     setNotice(failures.length ? 'Some records could not be saved: ' + failures.join('; ') : successMessage);
     setBusy(false);
-  }
-
-  // 4b. Publish, Edit, Like, Comment, Share, or Delete a Reflection Social Post
-  async function persistDatePosts(targetDate: string, updatedPostsForDate: ReflectionPost[], nextAllPosts: ReflectionPost[]) {
-    if (!db || !session) return { error: { message: 'Not signed in' } };
-    const uid = session.user.id;
-    const { error } = await db.from('reflections').upsert(
-      {
-        user_id: uid,
-        entry_date: targetDate,
-        answers: { posts: updatedPostsForDate },
-        pleasure: updatedPostsForDate.map((p) => (p.title ? `${p.title}\n${p.content}` : p.content)).join('\n\n'),
-        sense_gratification: '',
-      },
-      { onConflict: 'user_id,entry_date' }
-    );
-    if (!error) {
-      setReflectionPosts(nextAllPosts);
-    }
-    return { error };
-  }
-
-  async function submitReflectionPost() {
-    if (!db || !session) return;
-    const trimmedTitle = postTitle.trim();
-    const trimmedContent = postContent.trim();
-    if (!trimmedContent && !trimmedTitle) {
-      setNotice('Please write a headline or reflection before posting.');
-      return;
-    }
-
-    setPostingReflection(true);
-    setNotice('');
-    const nowIso = new Date().toISOString();
-    const targetDate = editingPost ? editingPost.entry_date : dateKey(new Date());
-
-    const existingForDate = reflectionPosts.filter((p) => p.entry_date === targetDate);
-    let updatedPostsForDate: ReflectionPost[];
-    let nextAllPosts: ReflectionPost[];
-
-    if (editingPost) {
-      const updatedPost: ReflectionPost = {
-        ...editingPost,
-        title: trimmedTitle || undefined,
-        content: trimmedContent || trimmedTitle,
-        tag: postTag || 'Gratitude',
-        updated_at: nowIso,
-      };
-      updatedPostsForDate = existingForDate.map((p) => (p.id === editingPost.id ? updatedPost : p));
-      nextAllPosts = reflectionPosts.map((p) => (p.id === editingPost.id ? updatedPost : p));
-    } else {
-      const newPost: ReflectionPost = {
-        id:
-          typeof crypto !== 'undefined' && crypto.randomUUID
-            ? crypto.randomUUID()
-            : `post_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        entry_date: targetDate,
-        title: trimmedTitle || undefined,
-        content: trimmedContent || trimmedTitle,
-        tag: postTag || 'Gratitude',
-        created_at: nowIso,
-      };
-      updatedPostsForDate = [newPost, ...existingForDate];
-      nextAllPosts = [newPost, ...reflectionPosts];
-    }
-
-    const { error } = await persistDatePosts(targetDate, updatedPostsForDate, nextAllPosts);
-
-    if (error) {
-      setNotice('Could not publish reflection: ' + error.message);
-    } else {
-      setPostTitle('');
-      setPostContent('');
-      setEditingPost(null);
-      setNotice(editingPost ? 'Post updated.' : 'Published to your reflection feed.');
-    }
-    setPostingReflection(false);
-  }
-
-  function startEditReflectionPost(post: ReflectionPost) {
-    setEditingPost(post);
-    setPostTitle(post.title || '');
-    setPostContent(post.content);
-    setPostTag(post.tag || 'Gratitude');
-    setNotice('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function cancelEditReflectionPost() {
-    setEditingPost(null);
-    setPostTitle('');
-    setPostContent('');
-    setPostTag('Gratitude');
-    setNotice('');
-  }
-
-  async function deleteReflectionPost(target: ReflectionPost) {
-    if (!db || !session || !window.confirm('Delete this post from your feed?')) return;
-    setPostingReflection(true);
-    setNotice('');
-    const uid = session.user.id;
-    const remainingForDate = reflectionPosts.filter(
-      (p) => p.entry_date === target.entry_date && p.id !== target.id
-    );
-
-    let err: { message: string } | null = null;
-    if (remainingForDate.length > 0) {
-      const res = await persistDatePosts(
-        target.entry_date,
-        remainingForDate,
-        reflectionPosts.filter((p) => p.id !== target.id)
-      );
-      err = res.error;
-    } else {
-      const res = await db
-        .from('reflections')
-        .delete()
-        .eq('user_id', uid)
-        .eq('entry_date', target.entry_date);
-      err = res.error;
-      if (!err) {
-        setReflectionPosts((prev) => prev.filter((p) => p.id !== target.id));
-      }
-    }
-
-    if (err) {
-      setNotice('Could not delete post: ' + err.message);
-    } else {
-      if (editingPost?.id === target.id) {
-        cancelEditReflectionPost();
-      }
-      setNotice('Post removed from feed.');
-    }
-    setPostingReflection(false);
   }
 
   // 5. Save Personal Intentions (Goals)
@@ -1396,7 +1135,6 @@ export default function App() {
   const japaTarget = goals.japa_rounds || 16;
   const completedPracticesCount = dailyActivities.filter((a) => activities[a] === 'yes').length;
   const hasRealizationsToday = ['0', '1', '2', '3', '4'].some((k) => String(journal[k] || '').trim() !== '');
-  const hasReflectionToday = reflectionPosts.some((p) => p.entry_date === date);
 
   function renderGoalsEditor() {
     return (
@@ -1468,7 +1206,7 @@ export default function App() {
       </header>
 
       <main className="content">
-        {tab !== 'reports' && tab !== 'reflection' && (
+        {tab !== 'reports' && (
           <div className="date-row">
             <button
               type="button"
@@ -1579,15 +1317,13 @@ export default function App() {
                 <small>{hasRealizationsToday ? 'Journal recorded' : 'Your private journal'}</small>
               </button>
 
-              <button type="button" className="offering-tile" onClick={() => switchTab('reflection')}>
-                <Heart />
-                <span className="tile-title">Reflection</span>
+              <button type="button" className="offering-tile" onClick={() => switchTab('temple')}>
+                <Landmark />
+                <span className="tile-title">Temple & Seva</span>
                 <small>
-                  {hasReflectionToday
-                    ? 'Reflection posted today'
-                    : reflectionPosts.length > 0
-                    ? `${reflectionPosts.length} reflection${reflectionPosts.length === 1 ? '' : 's'} in feed`
-                    : 'Share a reflection'}
+                  {events.length > 0
+                    ? `${events.length} seva recorded`
+                    : 'Offerings & service'}
                 </small>
               </button>
             </div>
@@ -1838,239 +1574,6 @@ export default function App() {
               <Save size={18} /> {busy ? 'Saving…' : 'Save My Realizations'}
             </button>
           </>
-        )}
-
-        {/* ==========================================
-            4. REFLECTION FEED (REDDIT / X / FACEBOOK SOCIAL STREAM)
-           ========================================== */}
-        {tab === 'reflection' && (
-          <div className="evening-surface">
-            {/* Top Social Post Composer */}
-            <section className="reflection-composer" aria-label="Create a post">
-              <div className="composer-top">
-                <div className="composer-author-left">
-                  <div className="post-avatar">
-                    <LotusMotif size={18} />
-                  </div>
-                  <div className="composer-meta">
-                    <strong>{editingPost ? 'Edit Post' : `k/${(postTag || 'gratitude').toLowerCase()}`}</strong>
-                    <span>
-                      <Clock size={11} />
-                      {editingPost
-                        ? `Posted ${formatPostDateTime(editingPost.created_at, editingPost.entry_date)}`
-                        : format(new Date(), 'd MMM yyyy, h:mm a')}
-                    </span>
-                  </div>
-                </div>
-                <span className="social-topic-pill">{postTag || 'Gratitude'}</span>
-              </div>
-
-              <div className="composer-canvas">
-                <input
-                  type="text"
-                  className="composer-title-input"
-                  aria-label="Post title or headline"
-                  placeholder="Headline (optional) — e.g., Peaceful morning japa…"
-                  value={postTitle}
-                  onChange={(e) => setPostTitle(e.target.value)}
-                />
-
-                <textarea
-                  className="composer-textarea"
-                  rows={3}
-                  aria-label="Post content"
-                  placeholder="What's on your mind? Share your reflection, realization, or prayer…"
-                  value={postContent}
-                  onChange={(e) => setPostContent(e.target.value)}
-                />
-              </div>
-
-              <div className="reflection-tags" role="group" aria-label="Post channel">
-                {reflectionTags.map((tag) => {
-                  const isActive = postTag === tag;
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      aria-pressed={isActive}
-                      className={`reflection-tag-btn ${isActive ? 'active' : ''}`}
-                      onClick={() => setPostTag(tag)}
-                    >
-                      k/{tag.toLowerCase()}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="composer-footer">
-                {editingPost ? (
-                  <button type="button" className="secondary-btn" onClick={cancelEditReflectionPost}>
-                    Cancel Edit
-                  </button>
-                ) : (
-                  <small className="muted" style={{ fontSize: 12 }}>
-                    Private sanctuary timeline • Instant publish
-                  </small>
-                )}
-
-                <button
-                  type="button"
-                  className="composer-post-btn"
-                  disabled={postingReflection || (!postContent.trim() && !postTitle.trim())}
-                  onClick={submitReflectionPost}
-                >
-                  <Send size={14} />
-                  {postingReflection ? 'Posting…' : editingPost ? 'Update Post' : 'Post'}
-                </button>
-              </div>
-            </section>
-
-            {/* Search + Channel Filter Toolbar */}
-            <div className="feed-toolbar">
-              {reflectionPosts.length > 1 && (
-                <div className="feed-search-wrap">
-                  <Search size={15} className="feed-search-icon" />
-                  <input
-                    type="search"
-                    className="feed-search-input"
-                    aria-label="Search reflection posts"
-                    placeholder="Search your posts, topics, or prayers…"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      className="feed-search-clear"
-                      aria-label="Clear search"
-                      onClick={() => setSearchQuery('')}
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              )}
-
-              <div className="feed-filter-bar" role="tablist" aria-label="Filter feed by channel">
-                {(['All', ...reflectionTags] as const).map((chip) => {
-                  const active = feedFilter === chip;
-                  const count =
-                    chip === 'All'
-                      ? reflectionPosts.length
-                      : reflectionPosts.filter((p) => (p.tag || 'Gratitude').toLowerCase() === chip.toLowerCase())
-                          .length;
-                  return (
-                    <button
-                      key={chip}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      className={`feed-filter-chip ${active ? 'active' : ''}`}
-                      onClick={() => setFeedFilter(chip)}
-                    >
-                      {chip === 'All'
-                        ? `All (${count})`
-                        : `k/${chip.toLowerCase()}${count > 0 ? ` · ${count}` : ''}`}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Social Feed Stream (Screenshot 2 Reddit / X / Threads layout) */}
-            {(() => {
-              const query = searchQuery.trim().toLowerCase();
-              const visiblePosts = reflectionPosts.filter((p) => {
-                const matchesTag =
-                  feedFilter === 'All' || (p.tag || 'Gratitude').toLowerCase() === feedFilter.toLowerCase();
-                if (!matchesTag) return false;
-                if (!query) return true;
-                return (
-                  (p.title || '').toLowerCase().includes(query) ||
-                  p.content.toLowerCase().includes(query) ||
-                  (p.tag || '').toLowerCase().includes(query)
-                );
-              });
-
-              if (visiblePosts.length === 0) {
-                return (
-                  <div className="social-feed-container" style={{ textAlign: 'center', padding: '36px 20px' }}>
-                    <div className="motif-mark" style={{ marginBottom: 8 }}>
-                      <LotusMotif size={26} />
-                    </div>
-                    <strong style={{ display: 'block', marginBottom: 4, color: '#1F181C', fontSize: 16 }}>
-                      {query || feedFilter !== 'All' ? 'No matching posts found' : 'Your reflection feed is ready'}
-                    </strong>
-                    <p className="muted" style={{ margin: 0 }}>
-                      {query || feedFilter !== 'All'
-                        ? 'Try clearing your filter or search query to view all posts.'
-                        : 'Write a headline or status update above and tap Post to publish to your timeline.'}
-                    </p>
-                  </div>
-                );
-              }
-
-              return (
-                <div className="social-feed-container">
-                  {visiblePosts.map((post) => {
-                    const channelSlug = `k/${(post.tag || 'remembrance').toLowerCase()}`;
-                    const lines = post.content.split('\n');
-                    const displayTitle = post.title || lines[0];
-                    const displayBody = post.title ? post.content : lines.slice(1).join('\n').trim();
-
-                    return (
-                      <article className="social-post-item" key={post.id}>
-                        {/* Row 1: Avatar + k/channel • relative time • exact Date & Time + Top-Right Actions */}
-                        <div className="social-post-meta">
-                          <div className="social-meta-left">
-                            <div className="post-avatar sm">
-                              <LotusMotif size={15} />
-                            </div>
-                            <span className="social-channel-name">{channelSlug}</span>
-                            <span className="social-meta-dot">•</span>
-                            <span className="social-time-ago">{formatRelativeTime(post.created_at)}</span>
-                            <span className="social-meta-dot">•</span>
-                            <span className="social-exact-datetime">
-                              {formatPostDateTime(post.created_at, post.entry_date)}
-                              {post.updated_at ? ' · edited' : ''}
-                            </span>
-                          </div>
-
-                          <div className="social-meta-right">
-                            <span className="social-topic-pill">{post.tag || 'Remembrance'}</span>
-                            <button
-                              type="button"
-                              className="social-icon-action"
-                              aria-label="Edit post"
-                              title="Edit post"
-                              onClick={() => startEditReflectionPost(post)}
-                            >
-                              <Pencil size={13.5} />
-                            </button>
-                            <button
-                              type="button"
-                              className="social-icon-action danger"
-                              aria-label="Delete post"
-                              title="Delete post"
-                              onClick={() => deleteReflectionPost(post)}
-                            >
-                              <Trash2 size={13.5} />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Row 2: Bold Headline */}
-                        <h3 className="social-post-title">{displayTitle}</h3>
-
-                        {/* Row 3: Multi-line Post Body */}
-                        {displayBody && <p className="social-post-body" style={{ marginBottom: 2 }}>{displayBody}</p>}
-                      </article>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </div>
         )}
 
         {/* ==========================================
@@ -2454,7 +1957,7 @@ export default function App() {
                     </span>
                     <span className="japa-legend-item">
                       <span className="legend-swatch" style={{ background: 'var(--gold)' }} />
-                      Journal, Reflection or Seva
+                      Journal or Seva
                     </span>
                   </div>
                 </section>
@@ -2622,14 +2125,6 @@ export default function App() {
                       <div className="ledger-val">
                         {report.realizations_count}
                         <span>{report.realizations_count === 1 ? 'entry' : 'entries'}</span>
-                      </div>
-                    </div>
-
-                    <div className="ledger-row">
-                      <div className="ledger-label">Days with evening reflections</div>
-                      <div className="ledger-val">
-                        {report.reflection}
-                        <span>{report.reflection === 1 ? 'day' : 'days'}</span>
                       </div>
                     </div>
                   </div>
