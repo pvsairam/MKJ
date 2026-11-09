@@ -1784,38 +1784,7 @@ export default function App() {
                   setDaily((x) => ({ ...x, book_pages: n }));
                 }}
               />
-              <Field
-                label="Śrīla Prabhupāda lecture minutes"
-                hint={goals.lecture_minutes ? `Intention: ${goals.lecture_minutes} min` : undefined}
-                value={daily.lecture_minutes}
-                onChange={(n) => {
-                  setIsDirty(true);
-                  setDaily((x) => ({ ...x, lecture_minutes: n }));
-                }}
-              />
-              <label className="field">
-                <span>Other devotional service</span>
-                <textarea
-                  rows={3}
-                  placeholder="Any other service offered today…"
-                  value={daily.other_service}
-                  onChange={(e) => {
-                    setIsDirty(true);
-                    setDaily((x) => ({ ...x, other_service: e.target.value }));
-                  }}
-                />
-              </label>
             </section>
-
-            <button type="button" className="goals-toggle" onClick={() => setShowGoalsEditor((v) => !v)}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <Target size={17} color="#B58B4C" />
-                Personal Intentions (Japa & Reading Goals)
-              </span>
-              {showGoalsEditor ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-            </button>
-
-            {showGoalsEditor && renderGoalsEditor()}
 
             <button
               type="button"
@@ -2167,25 +2136,6 @@ export default function App() {
                   value={quantityInput}
                   placeholder="Enter quantity"
                   onChange={(e) => setQuantityInput(e.target.value)}
-                />
-              </label>
-
-              <label className="field">
-                <span>Temple or Sanctuary (optional)</span>
-                <input
-                  value={templeName}
-                  placeholder="e.g. Sri Sri Radha Parthasarathi Mandir"
-                  onChange={(e) => setTempleName(e.target.value)}
-                />
-              </label>
-
-              <label className="field">
-                <span>Notes / Seva remembrance (optional)</span>
-                <textarea
-                  rows={2}
-                  value={description}
-                  placeholder="Details about this service or offering…"
-                  onChange={(e) => setDescription(e.target.value)}
                 />
               </label>
 

@@ -29,7 +29,6 @@ export const dailyActivities = [
   'Maṅgala Ārati',
   'Bhāgavatam Class 1',
   'Bhāgavatam Class 2',
-  'Bhagavad-gītā Reading',
 ] as const;
 
 export const questions = [
@@ -45,9 +44,6 @@ export const questions = [
 export const journalPrompts = [
   'What did I learn from Srimad Bhagavatam?',
   'What did I learn from Bhagavad-gītā?',
-  'What did I understand from Srila Prabhupada’s lecture?',
-  'Which instruction touched my heart today?',
-  'What did I realise about Krishna consciousness?',
 ] as const;
 
 export type TempleEventType =
