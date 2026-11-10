@@ -32,17 +32,10 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html, body {
+body {
   margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden;
   background: var(--ivory);
   color: var(--charcoal);
-}
-
-#root {
-  height: 100%;
 }
 
 h1, h2, h3, .serif {
@@ -130,10 +123,8 @@ textarea {
 .app {
   max-width: 500px;
   margin: 0 auto;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  min-height: 100dvh;
+  padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
   background: var(--ivory);
   box-shadow: 0 0 50px rgba(48, 39, 43, 0.06);
   position: relative;
@@ -141,7 +132,6 @@ textarea {
 
 /* Sanctuary Top Header */
 header {
-  flex-shrink: 0;
   position: relative;
   padding: calc(18px + env(safe-area-inset-top, 0px)) 48px 16px;
   display: flex;
@@ -220,12 +210,7 @@ header .icon-button {
 }
 
 .content {
-  flex: 1 1 0%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-  padding: 16px 16px 28px;
+  padding: 16px 16px 32px;
 }
 
 /* Date Navigation Bar */
@@ -1912,10 +1897,15 @@ header .icon-button {
   font-size: 20px;
 }
 
-/* Bottom Navigation — Locked Flex Footer (Never Floats on iOS Scroll) */
+/* Bottom Navigation — Locked to Viewport Bottom (No Transform / No Backdrop Filter) */
 .bottom {
-  flex-shrink: 0;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   width: 100%;
+  max-width: 500px;
   background: #FFF9F0;
   border-top: 1px solid var(--border-delicate);
   box-shadow: 0 -4px 18px rgba(48, 39, 43, 0.06);
@@ -1955,8 +1945,7 @@ header .icon-button {
 
 /* Authentication View */
 .auth {
-  height: 100%;
-  overflow-y: auto;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 20px;

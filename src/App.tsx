@@ -629,7 +629,7 @@ export default function App() {
   function switchTab(nextTab: Tab) {
     setNotice('');
     setTab(nextTab);
-    document.querySelector('.content')?.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function changeDate(nextDate: string) {
