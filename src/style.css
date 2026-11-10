@@ -130,10 +130,10 @@ textarea {
   position: relative;
 }
 
-/* Sanctuary Top Header */
+/* Sanctuary Top Header — Slimmed for Single-Screen Fit */
 header {
   position: relative;
-  padding: calc(18px + env(safe-area-inset-top, 0px)) 48px 16px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 44px 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -146,7 +146,7 @@ header {
 /* Standalone iPhone Home Screen Web App extra status bar clearance */
 @media all and (display-mode: standalone) {
   header {
-    padding-top: max(48px, calc(16px + env(safe-area-inset-top, 36px)));
+    padding-top: max(42px, calc(12px + env(safe-area-inset-top, 34px)));
   }
 }
 
@@ -159,10 +159,10 @@ header > div {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 6px;
   color: #DFC394;
-  letter-spacing: 0.14em;
-  font-size: 9px;
+  letter-spacing: 0.13em;
+  font-size: 8.5px;
   font-weight: 600;
   text-transform: uppercase;
   white-space: nowrap;
@@ -170,8 +170,8 @@ header > div {
 
 header h1 {
   color: #FFF7E8;
-  font-size: 25px;
-  margin: 5px 0 2px;
+  font-size: 21px;
+  margin: 2px 0 1px;
   font-weight: 500;
   letter-spacing: 0.01em;
 }
@@ -181,13 +181,13 @@ header p {
   color: #E2CEB5;
   font-family: 'Playfair Display', Georgia, serif;
   font-style: italic;
-  font-size: 13px;
+  font-size: 11.5px;
 }
 
 .icon-button {
-  padding: 9px;
-  min-width: 40px;
-  min-height: 40px;
+  padding: 7px;
+  min-width: 36px;
+  min-height: 36px;
   background: transparent;
   color: var(--plum);
   border-radius: 10px;
@@ -196,24 +196,24 @@ header p {
 header .icon-button {
   color: #EAD6B6;
   position: absolute;
-  right: 8px;
-  bottom: 16px;
+  right: 6px;
+  bottom: 10px;
 }
 
 .eyebrow {
-  letter-spacing: 0.15em;
+  letter-spacing: 0.14em;
   color: var(--gold);
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 600;
   text-transform: uppercase;
   display: block;
 }
 
 .content {
-  padding: 16px 16px 32px;
+  padding: 10px 14px 16px;
 }
 
-/* Date Navigation Bar */
+/* Date Navigation Bar — Compact */
 .date-row {
   display: flex;
   align-items: center;
@@ -221,7 +221,7 @@ header .icon-button {
   gap: 8px;
   max-width: 390px;
   width: 100%;
-  margin: 0 auto 16px;
+  margin: 0 auto 10px;
 }
 
 .date-row label.date-pill-label {
@@ -234,9 +234,9 @@ header .icon-button {
   background: var(--cream);
   border: 1px solid var(--border-delicate);
   border-radius: 99px;
-  min-height: 40px;
-  height: 40px;
-  padding: 0 14px;
+  min-height: 36px;
+  height: 36px;
+  padding: 0 12px;
   cursor: pointer;
   overflow: hidden;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -288,9 +288,9 @@ header .icon-button {
   color: var(--plum);
   border: 1px solid var(--border-delicate);
   border-radius: 50%;
-  height: 40px;
-  width: 40px;
-  min-height: 40px;
+  height: 36px;
+  width: 36px;
+  min-height: 36px;
   padding: 0;
   flex-shrink: 0;
 }
@@ -298,10 +298,10 @@ header .icon-button {
 .date-row button.today-pill {
   border-radius: 99px;
   width: auto;
-  height: 40px;
-  min-height: 40px;
-  padding: 0 13px;
-  font-size: 12.5px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 12px;
   font-weight: 600;
   background: #F3E7D3;
   border: 1px solid rgba(181, 139, 76, 0.4);
@@ -309,40 +309,40 @@ header .icon-button {
   flex-shrink: 0;
 }
 
-/* Darshan Home Card */
+/* Darshan Home Card — Compact Single-Screen Fit */
 .darshan {
   overflow: hidden;
   position: relative;
-  border-radius: 22px;
+  border-radius: 18px;
   border: 1px solid rgba(181, 139, 76, 0.38);
   background: var(--cream);
-  box-shadow: 0 8px 28px rgba(72, 40, 63, 0.08);
-  margin-bottom: 20px;
+  box-shadow: 0 6px 20px rgba(72, 40, 63, 0.08);
+  margin-bottom: 10px;
 }
 
 .darshan-top {
   background: linear-gradient(165deg, #2B2438 0%, var(--plum) 100%);
   text-align: center;
   color: #FFF6E6;
-  padding: 18px 16px 15px;
+  padding: 10px 14px 9px;
   border-bottom: 1px solid rgba(181, 139, 76, 0.3);
 }
 
 .darshan-top .eyebrow {
   color: #DEC18E;
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .darshan-top h2 {
   color: #FFF7EA;
-  font-size: 31px;
-  margin: 4px 0 2px;
+  font-size: 24px;
+  margin: 2px 0 1px;
   font-weight: 500;
 }
 
 .darshan-top p {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 13.5px;
+  font-size: 12.5px;
   margin: 0;
   color: #E5D4BE;
 }
@@ -353,11 +353,10 @@ header .icon-button {
   background:
     radial-gradient(circle at 50% 46%, rgba(229, 189, 119, 0.22) 0%, rgba(72, 40, 63, 0.5) 54%, #1A0E17 100%),
     linear-gradient(180deg, #241320 0%, #351A2E 50%, #1F101B 100%);
-  padding: 12px 12px 14px;
+  padding: 8px 10px 10px;
   text-align: center;
   overflow: hidden;
   border-top: 1px solid rgba(229, 189, 119, 0.3);
-  border-bottom: 1px solid rgba(229, 189, 119, 0.3);
 }
 
 .yuga-mandala-stage {
@@ -369,33 +368,34 @@ header .icon-button {
 
 .yuga-mandala-svg {
   width: 100%;
-  max-width: 340px;
+  max-width: 265px;
+  max-height: 205px;
   height: auto;
   filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.38));
 }
 
 .yuga-mantra-scroll {
-  margin-top: 4px;
-  padding: 0 8px;
+  margin-top: 2px;
+  padding: 0 6px;
 }
 
 .yuga-mantra-divider {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 7px;
+  gap: 6px;
+  margin-bottom: 4px;
 }
 
 .yuga-mantra-divider .line {
-  width: 48px;
+  width: 42px;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(223, 193, 142, 0.65), transparent);
 }
 
 .yuga-mantra-divider .diamond {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
   background: #DFC18E;
   transform: rotate(45deg);
 }
@@ -404,77 +404,32 @@ header .icon-button {
   margin: 0;
   font-family: 'Playfair Display', Georgia, serif;
   font-style: italic;
-  font-size: 12.5px;
-  line-height: 1.55;
+  font-size: 11.5px;
+  line-height: 1.45;
   letter-spacing: 0.02em;
   color: #F4E3C3;
 }
 
-.darshan-bottom {
-  text-align: center;
-  padding: 16px 22px 20px;
-  background: linear-gradient(180deg, var(--cream) 0%, #F9EFE0 100%);
-  border-top: 1px solid rgba(181, 139, 76, 0.22);
-}
-
-.motif-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--gold);
-  margin-bottom: 4px;
-}
-
-.darshan-bottom h2 {
-  margin: 0;
-  font-size: 22px;
-  color: var(--plum);
-}
-
-.darshan-bottom p {
-  font: italic 15px/1.55 'Playfair Display', Georgia, serif;
-  margin: 6px auto 0;
-  max-width: 310px;
-  color: var(--muted-ink);
-}
-
-/* Home Offering Section */
-.offering-intro {
-  text-align: center;
-  margin: 18px 0 14px;
-}
-
-.offering-intro h2 {
-  margin: 4px 0 3px;
-  font-size: 23px;
-  color: var(--plum);
-}
-
-.offering-intro p {
-  margin: 0;
-  color: var(--muted-ink);
-  font-size: 13px;
-}
-
+/* Home Offering Grid — Compact */
 .offering-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  gap: 8px;
 }
 
 .offering-tile {
-  min-height: 118px;
+  min-height: 78px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 3px;
   background: var(--cream);
   color: var(--plum);
   border: 1px solid var(--border-delicate);
-  border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(72, 40, 63, 0.04);
-  padding: 15px 10px;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(72, 40, 63, 0.04);
+  padding: 9px 8px;
   text-align: center;
 }
 
@@ -483,20 +438,20 @@ header .icon-button {
 }
 
 .offering-tile svg {
-  height: 24px;
-  width: 24px;
+  height: 19px;
+  width: 19px;
   color: var(--gold);
 }
 
 .offering-tile .tile-title {
-  font: 500 17px/1.25 'Playfair Display', Georgia, serif;
+  font: 500 15px/1.2 'Playfair Display', Georgia, serif;
   color: var(--plum);
 }
 
 .offering-tile small {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--muted-ink);
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
 /* Primary Buttons */
@@ -506,19 +461,19 @@ header .icon-button {
   box-shadow: 0 3px 12px rgba(72, 40, 63, 0.14);
   color: #FFF8EC;
   border-radius: 99px;
-  min-height: 50px;
+  min-height: 44px;
   font-weight: 600;
-  font-size: 15px;
+  font-size: 14.5px;
   letter-spacing: 0.01em;
   width: 100%;
 }
 
 .save {
-  margin: 16px 0 22px;
+  margin: 10px 0 4px;
 }
 
 .offering-cta {
-  margin: 16px 0 12px;
+  margin: 10px 0 4px;
 }
 
 .gentle-note {
@@ -1844,6 +1799,199 @@ header .icon-button {
 .remembrance-card h3 {
   margin: 3px 0 4px;
   font-size: 20px;
+}
+
+/* Single-Screen No-Scroll Compact Layouts */
+.compact-pane-title {
+  text-align: center;
+  margin: 2px 0 8px;
+}
+
+.compact-pane-title h2 {
+  font-size: 20px;
+  margin: 1px 0 0;
+  color: var(--plum);
+}
+
+.compact-practices-card {
+  padding: 8px 13px;
+  margin: 6px 0;
+}
+
+.compact-practice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #EFE4D2;
+}
+
+.compact-practice-row:last-child {
+  border-bottom: none;
+}
+
+.compact-practice-label strong {
+  font-size: 14px;
+  color: var(--plum);
+  white-space: nowrap;
+}
+
+.status-pills.compact {
+  display: inline-grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.status-pills.compact .status-pill {
+  min-height: 31px;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.compact-japa-card {
+  padding: 11px 13px;
+  margin: 8px 0;
+}
+
+.compact-japa-card .step-btn,
+.compact-japa-card .japa-controls input {
+  min-height: 38px;
+  height: 38px;
+}
+
+.compact-reading-card {
+  padding: 10px 13px;
+  margin: 8px 0;
+}
+
+.reading-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.reading-grid-2col .field {
+  margin: 0;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.reading-grid-2col .field input {
+  min-height: 38px;
+  height: 38px;
+  padding: 7px 10px;
+}
+
+.compact-journal-card {
+  padding: 12px 14px;
+  margin: 8px 0;
+}
+
+.compact-journal-card .journal-prompt-head {
+  margin-bottom: 6px;
+}
+
+.compact-journal-card .journal-prompt-head strong {
+  font-size: 15px;
+}
+
+.compact-journal-card textarea {
+  padding: 8px 11px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.compact-seva-card {
+  padding: 12px 14px;
+  margin: 6px 0 10px;
+}
+
+.seva-form-grid {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 8px;
+  align-items: end;
+}
+
+.seva-form-grid select,
+.seva-form-grid input {
+  min-height: 40px;
+  height: 40px;
+  padding: 7px 10px;
+}
+
+.seva-recorded-box {
+  margin-top: 6px;
+}
+
+.seva-recorded-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.seva-recorded-head strong {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 15.5px;
+  color: var(--plum);
+}
+
+.seva-events-list {
+  max-height: 210px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.compact-event {
+  padding: 9px 12px;
+  margin: 6px 0;
+  align-items: center;
+}
+
+.compact-event-qty {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--charcoal);
+}
+
+/* Monthly Offerings Compact Top Bar & Segmented Subtabs */
+.reports-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.report-subtabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  background: #EFE4D1;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--border-delicate);
+  margin-bottom: 10px;
+}
+
+.report-subtab {
+  min-height: 32px;
+  padding: 5px 6px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  color: var(--muted-ink);
+}
+
+.report-subtab.active {
+  background: var(--cream);
+  color: var(--plum);
+  box-shadow: 0 2px 6px rgba(72, 40, 63, 0.08);
 }
 
 /* Bottom Navigation — Locked to Viewport Bottom (No Transform / No Backdrop Filter) */

@@ -25,9 +25,6 @@ import {
   Flower2,
   NotebookPen,
   HandHeart,
-  Target,
-  ChevronDown,
-  ChevronUp,
   Calendar,
 } from 'lucide-react';
 import {
@@ -39,7 +36,6 @@ import {
   templeEventTypes,
   templeEventMetaMap,
   formatEventQuantity,
-  goalDefinitions,
   type TempleEventType,
 } from './lib';
 
@@ -182,27 +178,6 @@ function JapaMalaMotif({ size = 24 }: { size?: number }) {
       <circle cx="6.8" cy="19.5" r="1.6" />
       <circle cx="4.8" cy="13" r="1.6" />
       <circle cx="7.5" cy="6.8" r="1.6" />
-    </svg>
-  );
-}
-
-function TulsiSprigMotif({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 20 20"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M10 17V5" />
-      <path d="M10 4C8.2 5.8 8.2 8.2 10 10C11.8 8.2 11.8 5.8 10 4Z" />
-      <path d="M10 11C7.2 9.5 4.8 10.2 4 12.5C6.2 13.5 8.5 13 10 11Z" />
-      <path d="M10 11C12.8 9.5 15.2 10.2 16 12.5C13.8 13.5 11.5 13 10 11Z" />
     </svg>
   );
 }
@@ -778,8 +753,6 @@ export default function App() {
 
   // Goals (Personal Intentions) state
   const [goals, setGoals] = useState<Record<string, number | null>>({});
-  const [showGoalsEditor, setShowGoalsEditor] = useState(false);
-  const [savingGoals, setSavingGoals] = useState(false);
 
   // Status & loading state
   const [notice, setNotice] = useState('');
@@ -792,6 +765,7 @@ export default function App() {
   const [month, setMonth] = useState(dateKey(startOfMonth(new Date())).slice(0, 7));
   const [remembrance, setRemembrance] = useState('');
   const [savingRemembrance, setSavingRemembrance] = useState(false);
+  const [reportView, setReportView] = useState<'overview' | 'calendar' | 'ledger' | 'gratitude'>('overview');
 
   function switchTab(nextTab: Tab) {
     setNotice('');
@@ -1024,49 +998,6 @@ export default function App() {
     }
     setNotice(failures.length ? 'Some records could not be saved: ' + failures.join('; ') : successMessage);
     setBusy(false);
-  }
-
-  // 5. Save Personal Intentions (Goals)
-  async function saveGoals() {
-    if (!db || !session) return;
-    for (const def of goalDefinitions) {
-      const val = goals[def.key];
-      if (val !== undefined && val !== null) {
-        if (!Number.isFinite(val) || val < 0 || val > def.max) {
-          setNotice(`Please enter a valid target between 0 and ${def.max} for ${def.label}.`);
-          return;
-        }
-      }
-    }
-
-    setSavingGoals(true);
-    setNotice('');
-    const uid = session.user.id;
-    const ops: PromiseLike<{ error: { message: string } | null }>[] = [];
-
-    for (const def of goalDefinitions) {
-      const val = goals[def.key];
-      if (val !== undefined && val !== null && val > 0) {
-        ops.push(
-          db.from('goals').upsert(
-            { user_id: uid, goal_key: def.key, target: val },
-            { onConflict: 'user_id,goal_key' }
-          )
-        );
-      } else {
-        ops.push(db.from('goals').delete().eq('user_id', uid).eq('goal_key', def.key));
-      }
-    }
-
-    const res = await Promise.all(ops);
-    const err = res.find((r) => r.error)?.error;
-    if (err) {
-      setNotice(err.message);
-    } else {
-      setNotice('Personal intentions saved.');
-      setShowGoalsEditor(false);
-    }
-    setSavingGoals(false);
   }
 
   // 6. Add or Update Temple & Seva Event
@@ -1489,40 +1420,6 @@ export default function App() {
   const completedPracticesCount = dailyActivities.filter((a) => activities[a] === 'yes').length;
   const hasRealizationsToday = ['0', '1', '2', '3', '4'].some((k) => String(journal[k] || '').trim() !== '');
 
-  function renderGoalsEditor() {
-    return (
-      <section className="card" style={{ borderColor: 'rgba(181, 139, 76, 0.5)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <h3 style={{ margin: 0 }}>Personal Intentions (Sankalpa)</h3>
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="Close intentions editor"
-            onClick={() => setShowGoalsEditor(false)}
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <p className="muted" style={{ marginTop: 0 }}>
-          Set gentle personal intentions to guide your daily and monthly offerings. Leave blank if not needed.
-        </p>
-        {goalDefinitions.map((def) => (
-          <Field
-            key={def.key}
-            label={`${def.label} (${def.unit})`}
-            hint={def.defaultTarget ? `Default: ${def.defaultTarget}` : undefined}
-            value={goals[def.key] ?? def.defaultTarget}
-            max={def.max}
-            onChange={(val) => setGoals((prev) => ({ ...prev, [def.key]: val }))}
-          />
-        ))}
-        <button type="button" className="save" style={{ marginBottom: 4 }} disabled={savingGoals} onClick={saveGoals}>
-          <Save size={18} /> {savingGoals ? 'Saving…' : 'Save Personal Intentions'}
-        </button>
-      </section>
-    );
-  }
-
   // Monthly calendar & Japa chart helpers
   const monthDateObj = new Date(month + '-01T12:00:00');
   const daysInSelectedMonth = getDaysInMonth(monthDateObj);
@@ -1619,31 +1516,18 @@ export default function App() {
         )}
 
         {/* ==========================================
-            1. DARSHAN HOME
+            1. DARSHAN HOME (SINGLE-SCREEN NO-SCROLL)
            ========================================== */}
         {tab === 'home' && (
-          <>
+          <div className="screen-pane home-pane">
             <section className="darshan">
               <div className="darshan-top">
                 <span className="eyebrow">ŚRĪ ŚRĪ RĀDHĀ KṚṢṆA</span>
                 <h2>Hare Krishna</h2>
-                <p>Welcome to your sacred space</p>
+                <p>At Your Lotus Feet — {format(new Date(date + 'T12:00:00'), 'EEEE, d MMMM')}</p>
               </div>
               <YugaSanctumMandala />
-              <div className="darshan-bottom">
-                <div className="motif-mark">
-                  <LotusMotif size={24} />
-                </div>
-                <h2>At Your Lotus Feet</h2>
-                <p>May my thoughts, words and actions become a loving offering to You.</p>
-              </div>
             </section>
-
-            <div className="offering-intro">
-              <span className="eyebrow">YOUR DAILY OFFERING</span>
-              <h2>{format(new Date(date + 'T12:00:00'), 'EEEE, d MMMM')}</h2>
-              <p>Every sincere effort is worth remembering.</p>
-            </div>
 
             <div className="offering-grid">
               <button type="button" className="offering-tile" onClick={() => switchTab('daily')}>
@@ -1651,118 +1535,118 @@ export default function App() {
                 <span className="tile-title">Today's Sādhana</span>
                 <small>
                   {completedPracticesCount > 0
-                    ? `${completedPracticesCount} of ${dailyActivities.length} practices offered`
-                    : 'Record your practice'}
+                    ? `${completedPracticesCount} of ${dailyActivities.length} offered`
+                    : 'Record practice'}
                 </small>
               </button>
 
               <button type="button" className="offering-tile" onClick={() => switchTab('daily')}>
-                <JapaMalaMotif size={24} />
+                <JapaMalaMotif size={20} />
                 <span className="tile-title">Japa</span>
                 <small>
-                  {daily.japa_rounds === null ? 'Not recorded' : `${daily.japa_rounds} of ${japaTarget} rounds`}
+                  {daily.japa_rounds === null ? 'Not recorded' : `${daily.japa_rounds} / ${japaTarget} rounds`}
                 </small>
               </button>
 
               <button type="button" className="offering-tile" onClick={() => switchTab('journal')}>
                 <NotebookPen />
                 <span className="tile-title">Realizations</span>
-                <small>{hasRealizationsToday ? 'Journal recorded' : 'Your private journal'}</small>
+                <small>{hasRealizationsToday ? 'Journal recorded' : 'Private journal'}</small>
               </button>
 
               <button type="button" className="offering-tile" onClick={() => switchTab('temple')}>
                 <Landmark />
                 <span className="tile-title">Temple & Seva</span>
                 <small>
-                  {events.length > 0
-                    ? `${events.length} seva recorded`
-                    : 'Offerings & service'}
+                  {events.length > 0 ? `${events.length} seva recorded` : 'Offerings & service'}
                 </small>
               </button>
             </div>
 
             <button type="button" className="save offering-cta" onClick={() => switchTab('daily')}>
-              <HandHeart size={19} /> Make Today's Offering
+              <HandHeart size={18} /> Make Today's Offering
             </button>
-
-            <div className="gentle-note">
-              <TulsiSprigMotif size={16} />
-              <span>No scores. No comparisons. Just your journey of remembrance and service.</span>
-            </div>
-          </>
+          </div>
         )}
 
         {/* ==========================================
-            2. TODAY'S SĀDHANA
+            2. TODAY'S SĀDHANA (SINGLE-SCREEN NO-SCROLL)
            ========================================== */}
         {tab === 'daily' && (
-          <>
-            <div className="section-heading">
-              <div className="heading-motif">
-                <Flower2 size={26} />
-              </div>
+          <div className="screen-pane sadhana-pane">
+            <div className="compact-pane-title">
               <span className="eyebrow">MY DAILY OFFERING</span>
               <h2>Today’s Sādhana</h2>
-              <p>Each practice is a personal offering to Krishna.</p>
             </div>
 
-            <p className="muted" style={{ marginTop: 0 }}>
-              Select an offering status below, or tap an active choice again to leave it unrecorded.
-            </p>
-
-            {dailyActivities.map((a) => {
-              const current = activities[a] || '';
-              return (
-                <div className="card practice-card" key={a}>
-                  <div className="practice-header">
-                    <strong>{a}</strong>
-                    <small className="muted" style={{ fontSize: 11.5 }}>
-                      {current === 'yes'
-                        ? 'Completed'
-                        : current === 'partial'
-                        ? 'Partially'
-                        : current === 'no'
-                        ? 'Not completed'
-                        : 'Not recorded'}
-                    </small>
+            <section className="card compact-practices-card">
+              {dailyActivities.map((a) => {
+                const current = activities[a] || '';
+                return (
+                  <div className="compact-practice-row" key={a}>
+                    <div className="compact-practice-label">
+                      <strong>{a}</strong>
+                    </div>
+                    <div className="status-pills compact" role="group" aria-label={a}>
+                      {(
+                        [
+                          { value: 'yes', label: 'Done', activeClass: 'active-yes' },
+                          { value: 'partial', label: 'Part', activeClass: 'active-partial' },
+                          { value: 'no', label: 'No', activeClass: 'active-no' },
+                        ] as const
+                      ).map((opt) => {
+                        const isActive = current === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            aria-pressed={isActive}
+                            className={`status-pill ${isActive ? opt.activeClass : ''}`}
+                            onClick={() => {
+                              setIsDirty(true);
+                              setActivities((prev) => ({
+                                ...prev,
+                                [a]: prev[a] === opt.value ? '' : opt.value,
+                              }));
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="status-pills" role="group" aria-label={a}>
-                    {(
-                      [
-                        { value: 'yes', label: 'Completed', activeClass: 'active-yes' },
-                        { value: 'partial', label: 'Partially', activeClass: 'active-partial' },
-                        { value: 'no', label: 'Not completed', activeClass: 'active-no' },
-                      ] as const
-                    ).map((opt) => {
-                      const isActive = current === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          aria-pressed={isActive}
-                          className={`status-pill ${isActive ? opt.activeClass : ''}`}
-                          onClick={() => {
-                            setIsDirty(true);
-                            setActivities((prev) => ({
-                              ...prev,
-                              [a]: prev[a] === opt.value ? '' : opt.value,
-                            }));
-                          }}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </section>
 
-            <section className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <h3 style={{ margin: 0 }}>Japa Meditation</h3>
-                <small className="muted" style={{ fontSize: 12 }}>
+            <section className="card compact-japa-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <h3 style={{ margin: 0, fontSize: 16 }}>Japa Meditation</h3>
+                <small className="muted" style={{ fontSize: 11.5 }}>
                   Intention: {japaTarget} rounds
+                  {daily.japa_rounds !== null && (
+                    <>
+                      {' · '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsDirty(true);
+                          setDaily((x) => ({ ...x, japa_rounds: null }));
+                        }}
+                        style={{
+                          background: 'transparent',
+                          color: 'var(--muted-ink)',
+                          minHeight: 18,
+                          padding: '0 2px',
+                          fontSize: 11,
+                          textDecoration: 'underline',
+                        }}
+                      >
+                        Clear
+                      </button>
+                    </>
+                  )}
                 </small>
               </div>
               <div className="japa-controls">
@@ -1787,7 +1671,7 @@ export default function App() {
                   min={0}
                   max={1000}
                   value={daily.japa_rounds ?? ''}
-                  placeholder="Not recorded"
+                  placeholder="Rounds"
                   onChange={(e) => {
                     setIsDirty(true);
                     const raw = e.target.value.trim();
@@ -1827,52 +1711,30 @@ export default function App() {
                   {japaTarget}
                 </button>
               </div>
-              <div className="track">
+              <div className="track" style={{ margin: '8px 0 0' }}>
                 <div style={{ width: `${Math.min(100, ((daily.japa_rounds || 0) / Math.max(1, japaTarget)) * 100)}%` }} />
-              </div>
-              <div className="track-caption">
-                <span>{daily.japa_rounds === null ? 'Not recorded yet' : `${daily.japa_rounds} rounds chanted`}</span>
-                {daily.japa_rounds !== null && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsDirty(true);
-                      setDaily((x) => ({ ...x, japa_rounds: null }));
-                    }}
-                    style={{
-                      background: 'transparent',
-                      color: 'var(--muted-ink)',
-                      minHeight: 24,
-                      padding: '0 4px',
-                      fontSize: 11.5,
-                      textDecoration: 'underline',
-                    }}
-                  >
-                    Clear
-                  </button>
-                )}
               </div>
             </section>
 
-            <section className="card">
-              <h3>Reading and Hearing</h3>
-              <Field
-                label="Book reading minutes"
-                hint={goals.book_minutes ? `Intention: ${goals.book_minutes} min` : undefined}
-                value={daily.book_minutes}
-                onChange={(n) => {
-                  setIsDirty(true);
-                  setDaily((x) => ({ ...x, book_minutes: n }));
-                }}
-              />
-              <Field
-                label="Book reading pages"
-                value={daily.book_pages}
-                onChange={(n) => {
-                  setIsDirty(true);
-                  setDaily((x) => ({ ...x, book_pages: n }));
-                }}
-              />
+            <section className="card compact-reading-card">
+              <div className="reading-grid-2col">
+                <Field
+                  label="Reading (minutes)"
+                  value={daily.book_minutes}
+                  onChange={(n) => {
+                    setIsDirty(true);
+                    setDaily((x) => ({ ...x, book_minutes: n }));
+                  }}
+                />
+                <Field
+                  label="Reading (pages)"
+                  value={daily.book_pages}
+                  onChange={(n) => {
+                    setIsDirty(true);
+                    setDaily((x) => ({ ...x, book_pages: n }));
+                  }}
+                />
+              </div>
             </section>
 
             <button
@@ -1883,31 +1745,27 @@ export default function App() {
             >
               <Save size={18} /> {busy ? 'Saving…' : 'Save My Offering'}
             </button>
-          </>
+          </div>
         )}
 
         {/* ==========================================
-            3. SPIRITUAL REALIZATIONS (JOURNAL)
+            3. SPIRITUAL REALIZATIONS (JOURNAL — SINGLE-SCREEN)
            ========================================== */}
         {tab === 'journal' && (
-          <>
-            <div className="section-heading">
-              <div className="heading-motif">
-                <NotebookPen size={26} />
-              </div>
+          <div className="screen-pane journal-pane">
+            <div className="compact-pane-title">
               <span className="eyebrow">A SACRED JOURNAL</span>
               <h2>Spiritual Realizations</h2>
-              <p>What did Krishna teach me on {format(new Date(date + 'T12:00:00'), 'd MMMM')}?</p>
             </div>
 
             {journalPrompts.map((q, i) => (
-              <label className="journal-card field" key={q}>
+              <label className="journal-card field compact-journal-card" key={q}>
                 <div className="journal-prompt-head">
                   <span className="roman-index">{romanNumerals[i]}.</span>
                   <strong>{q}</strong>
                 </div>
                 <textarea
-                  rows={4}
+                  rows={3}
                   value={journal[String(i)] || ''}
                   onChange={(e) => {
                     setIsDirty(true);
@@ -1926,146 +1784,148 @@ export default function App() {
             >
               <Save size={18} /> {busy ? 'Saving…' : 'Save My Realizations'}
             </button>
-          </>
+          </div>
         )}
 
         {/* ==========================================
-            5. TEMPLE & SEVA
+            5. TEMPLE & SEVA (SINGLE-SCREEN)
            ========================================== */}
         {tab === 'temple' && (
-          <>
-            <div className="section-heading">
-              <div className="heading-motif">
-                <Landmark size={26} />
-              </div>
+          <div className="screen-pane seva-pane">
+            <div className="compact-pane-title">
               <span className="eyebrow">IN LOVING SERVICE</span>
               <h2>Temple & Seva</h2>
-              <p>Offerings of time, devotion and book distribution.</p>
             </div>
 
-            <section className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <h3 style={{ margin: 0 }}>{editingEventId ? 'Edit Seva Record' : 'Record an Offering'}</h3>
+            <section className="card compact-seva-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <h3 style={{ margin: 0, fontSize: 16 }}>{editingEventId ? 'Edit Seva Record' : 'Record an Offering'}</h3>
                 {editingEventId && (
-                  <button type="button" className="secondary-btn" onClick={resetEventForm}>
+                  <button type="button" className="secondary-btn" style={{ minHeight: 30, padding: '4px 10px', fontSize: 12 }} onClick={resetEventForm}>
                     Cancel
                   </button>
                 )}
               </div>
 
-              <label className="field">
-                <span>Seva / Activity</span>
-                <select
-                  value={eventType}
-                  onChange={(e) => {
-                    const nextType = e.target.value as TempleEventType;
-                    setEventType(nextType);
-                    if (!templeEventMetaMap[nextType]?.allowDecimals) {
-                      const num = Number(quantityInput);
-                      if (Number.isFinite(num) && num > 0) {
-                        setQuantityInput(String(Math.max(1, Math.round(num))));
+              <div className="seva-form-grid">
+                <label className="field" style={{ margin: 0 }}>
+                  <span>Seva / Activity</span>
+                  <select
+                    value={eventType}
+                    onChange={(e) => {
+                      const nextType = e.target.value as TempleEventType;
+                      setEventType(nextType);
+                      if (!templeEventMetaMap[nextType]?.allowDecimals) {
+                        const num = Number(quantityInput);
+                        if (Number.isFinite(num) && num > 0) {
+                          setQuantityInput(String(Math.max(1, Math.round(num))));
+                        }
                       }
-                    }
-                  }}
-                >
-                  {templeEventTypes.map((t) => (
-                    <option key={t.key} value={t.key}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                    }}
+                  >
+                    {templeEventTypes.map((t) => (
+                      <option key={t.key} value={t.key}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              <label className="field">
-                <span>
-                  {eventType === 'contribution'
-                    ? 'Contribution Amount (INR)'
-                    : eventType === 'service'
-                    ? 'Duration (hours)'
-                    : 'Quantity'}
-                </span>
-                <input
-                  type="number"
-                  inputMode={templeEventMetaMap[eventType]?.allowDecimals ? 'decimal' : 'numeric'}
-                  min={templeEventMetaMap[eventType]?.allowDecimals ? '0.01' : '1'}
-                  step={templeEventMetaMap[eventType]?.allowDecimals ? '0.01' : '1'}
-                  value={quantityInput}
-                  placeholder="Enter quantity"
-                  onChange={(e) => setQuantityInput(e.target.value)}
-                />
-              </label>
+                <label className="field" style={{ margin: 0 }}>
+                  <span>
+                    {eventType === 'contribution'
+                      ? 'Amount (INR)'
+                      : eventType === 'service'
+                      ? 'Hours'
+                      : 'Quantity'}
+                  </span>
+                  <input
+                    type="number"
+                    inputMode={templeEventMetaMap[eventType]?.allowDecimals ? 'decimal' : 'numeric'}
+                    min={templeEventMetaMap[eventType]?.allowDecimals ? '0.01' : '1'}
+                    step={templeEventMetaMap[eventType]?.allowDecimals ? '0.01' : '1'}
+                    value={quantityInput}
+                    placeholder="Qty"
+                    onChange={(e) => setQuantityInput(e.target.value)}
+                  />
+                </label>
+              </div>
 
-              <button type="button" className="save" style={{ marginBottom: 4 }} disabled={busy} onClick={saveTempleEvent}>
-                {editingEventId ? <Save size={18} /> : <Plus size={18} />}
+              <button type="button" className="save" style={{ margin: '10px 0 2px' }} disabled={busy} onClick={saveTempleEvent}>
+                {editingEventId ? <Save size={17} /> : <Plus size={17} />}
                 {busy ? 'Saving…' : editingEventId ? 'Update Seva Record' : 'Add to Today’s Seva'}
               </button>
             </section>
 
-            <h3 style={{ marginTop: 20 }}>Recorded on {format(new Date(date + 'T12:00:00'), 'd MMMM yyyy')}</h3>
-            {events.length === 0 ? (
-              <p className="muted">No temple or seva records saved for this date.</p>
-            ) : (
-              events.map((e) => {
-                const meta = templeEventMetaMap[e.event_type];
-                return (
-                  <div className="card event" key={e.id}>
-                    <div>
-                      <strong>{meta ? meta.label : e.event_type.replaceAll('_', ' ')}</strong>
-                      <p>
-                        {formatEventQuantity(e.event_type, e.quantity, e.currency)}
-                        {e.temple_name ? ` • ${e.temple_name}` : ''}
-                      </p>
-                      {e.description && <small>{e.description}</small>}
-                    </div>
-                    <div className="event-actions">
-                      <button
-                        type="button"
-                        className="icon-button"
-                        aria-label="Edit record"
-                        title="Edit record"
-                        onClick={() => startEditEvent(e)}
-                      >
-                        <Pencil size={17} />
-                      </button>
-                      <button
-                        type="button"
-                        className="icon-button"
-                        aria-label="Delete record"
-                        title="Delete record"
-                        onClick={() => deleteEvent(e.id)}
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </>
+            <div className="seva-recorded-box">
+              <div className="seva-recorded-head">
+                <strong>Recorded on {format(new Date(date + 'T12:00:00'), 'd MMM yyyy')}</strong>
+                <small className="muted">{events.length} {events.length === 1 ? 'entry' : 'entries'}</small>
+              </div>
+              {events.length === 0 ? (
+                <p className="muted" style={{ margin: '8px 0', fontSize: 13 }}>No temple or seva records saved for this date.</p>
+              ) : (
+                <div className="seva-events-list">
+                  {events.map((e) => {
+                    const meta = templeEventMetaMap[e.event_type];
+                    return (
+                      <div className="card event compact-event" key={e.id}>
+                        <div>
+                          <strong>{meta ? meta.label : e.event_type.replaceAll('_', ' ')}</strong>
+                          <span className="compact-event-qty">
+                            {' • '}
+                            {formatEventQuantity(e.event_type, e.quantity, e.currency)}
+                          </span>
+                        </div>
+                        <div className="event-actions">
+                          <button
+                            type="button"
+                            className="icon-button"
+                            aria-label="Edit record"
+                            title="Edit record"
+                            onClick={() => startEditEvent(e)}
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-button"
+                            aria-label="Delete record"
+                            title="Delete record"
+                            onClick={() => deleteEvent(e.id)}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {/* ==========================================
-            6. MONTHLY OFFERINGS (REDESIGNED)
+            6. MONTHLY OFFERINGS (SINGLE-SCREEN SEGMENTED PILLS)
            ========================================== */}
         {tab === 'reports' && (
-          <>
-            {/* A. Monthly Header */}
-            <section className="monthly-header">
-              <div className="motif-mark">
-                <LotusMotif size={26} />
+          <div className="screen-pane reports-pane">
+            {/* Compact Monthly Top Bar */}
+            <div className="reports-top-bar">
+              <div>
+                <span className="eyebrow">MONTHLY JOURNAL</span>
+                <h2 style={{ margin: 0, fontSize: 20 }}>Offerings</h2>
               </div>
-              <span className="eyebrow">MONTHLY DEVOTIONAL JOURNAL</span>
-              <h2>Monthly Offerings</h2>
-              <p>A grateful remembrance of your service this month.</p>
 
               <div className="month-nav">
                 <button type="button" aria-label="Previous month" onClick={() => shiftMonth(-1)}>
-                  <ChevronLeft size={17} />
+                  <ChevronLeft size={16} />
                 </button>
                 <label className="month-pill-label">
-                  <span className="date-pill-display">
-                    <span>{format(monthDateObj, 'MMMM yyyy')}</span>
-                    <Calendar size={14} />
+                  <span className="date-pill-display" style={{ fontSize: 13.5 }}>
+                    <span>{format(monthDateObj, 'MMM yyyy')}</span>
+                    <Calendar size={13} />
                   </span>
                   <input
                     aria-label="Select month and year"
@@ -2083,449 +1943,298 @@ export default function App() {
                   />
                 </label>
                 <button type="button" aria-label="Next month" onClick={() => shiftMonth(1)}>
-                  <ChevronRight size={17} />
+                  <ChevronRight size={16} />
                 </button>
               </div>
-            </section>
+            </div>
+
+            {/* Segmented Sub-Pills so Offerings never needs vertical scrolling */}
+            <div className="report-subtabs" role="tablist" aria-label="Monthly offerings sections">
+              {(
+                [
+                  { id: 'overview', label: 'Overview' },
+                  { id: 'calendar', label: 'Calendar' },
+                  { id: 'ledger', label: 'Summary' },
+                  { id: 'gratitude', label: 'Gratitude' },
+                ] as const
+              ).map((st) => (
+                <button
+                  key={st.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={reportView === st.id}
+                  className={`report-subtab ${reportView === st.id ? 'active' : ''}`}
+                  onClick={() => setReportView(st.id)}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
 
             {reportsLoading ? (
-              <p className="muted" style={{ textAlign: 'center', padding: '24px 0' }}>
+              <p className="muted" style={{ textAlign: 'center', padding: '20px 0' }}>
                 Gathering your monthly offerings…
               </p>
             ) : (
               <>
-                {/* B. Composed Monthly Overview (3 distinct card styles) */}
-                <section className="overview-feature" aria-label="Monthly offering highlights">
-                  <div className="overview-feature-grid">
-                    <div className="overview-stat">
-                      <span className="stat-num">{report.days}</span>
-                      <span className="stat-label">Days with Offerings</span>
-                      <span className="stat-sub">
-                        {report.days === 0
-                          ? 'No offerings recorded yet'
-                          : `in ${format(monthDateObj, 'MMMM yyyy')}`}
-                      </span>
+                {reportView === 'overview' && (
+                  <>
+                    <section className="overview-feature" aria-label="Monthly offering highlights">
+                      <div className="overview-feature-grid">
+                        <div className="overview-stat">
+                          <span className="stat-num">{report.days}</span>
+                          <span className="stat-label">Days Offered</span>
+                        </div>
+                        <div className="overview-divider" aria-hidden="true" />
+                        <div className="overview-stat">
+                          <span className="stat-num">{report.japa.toLocaleString('en-IN')}</span>
+                          <span className="stat-label">Japa Rounds</span>
+                        </div>
+                      </div>
+                    </section>
+
+                    <div className="overview-pillars">
+                      <div className="pillar-card arati-pillar">
+                        <span className="pillar-eyebrow">Maṅgala Ārati</span>
+                        <strong className="pillar-value">
+                          {report.arati} {report.arati === 1 ? 'day' : 'days'}
+                        </strong>
+                      </div>
+
+                      <div className="pillar-card sastra-pillar">
+                        <span className="pillar-eyebrow">Reading</span>
+                        <strong className="pillar-value">
+                          {report.reading.toLocaleString('en-IN')} min
+                        </strong>
+                      </div>
                     </div>
-                    <div className="overview-divider" aria-hidden="true" />
-                    <div className="overview-stat">
-                      <span className="stat-num">{report.japa.toLocaleString('en-IN')}</span>
-                      <span className="stat-label">Total Japa Rounds</span>
-                      <span className="stat-sub">
-                        {report.japaDays > 0
-                          ? `Across ${report.japaDays} recorded ${report.japaDays === 1 ? 'day' : 'days'}`
-                          : 'Not yet recorded'}
-                      </span>
+
+                    <section className="japa-sanctuary-card" aria-label="Monthly Japa overview">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ color: 'var(--gold)', display: 'inline-flex' }}>
+                            <JapaMalaMotif size={18} />
+                          </span>
+                          <h3 style={{ margin: 0, fontSize: 16 }}>Daily Japa ({report.japaDays}d)</h3>
+                        </div>
+                        <div className="japa-intention-badge">Target: {japaTarget}/d</div>
+                      </div>
+
+                      <div className="japa-chart-wrap">
+                        <div
+                          className="japa-bars"
+                          role="img"
+                          aria-label={`Daily Japa chart for ${format(monthDateObj, 'MMMM yyyy')}`}
+                        >
+                          {monthDayNumbers.map((dayNum) => {
+                            const dayKey = `${month}-${String(dayNum).padStart(2, '0')}`;
+                            const rounds = report.japaByDate[dayKey];
+                            const isRecorded = rounds !== undefined && rounds !== null;
+                            const pct =
+                              isRecorded && rounds > 0
+                                ? Math.max(12, Math.min(100, Math.round((rounds / Math.max(1, maxDailyJapa)) * 100)))
+                                : 0;
+
+                            return (
+                              <button
+                                key={dayKey}
+                                type="button"
+                                className="japa-bar-col"
+                                title={
+                                  !isRecorded
+                                    ? `${dayNum} ${format(monthDateObj, 'MMM')}: Not recorded`
+                                    : `${dayNum} ${format(monthDateObj, 'MMM')}: ${rounds} rounds`
+                                }
+                                onClick={() => {
+                                  setDate(dayKey);
+                                  switchTab('daily');
+                                }}
+                              >
+                                {!isRecorded ? (
+                                  <span className="japa-unrecorded-tick" />
+                                ) : rounds === 0 ? (
+                                  <span className="japa-zero-dot" />
+                                ) : (
+                                  <span
+                                    className={`japa-bar-fill ${rounds >= japaTarget ? 'met' : 'recorded'}`}
+                                    style={{ height: `${pct}%` }}
+                                  />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="japa-axis">
+                          <span>1 {format(monthDateObj, 'MMM')}</span>
+                          <span>15 {format(monthDateObj, 'MMM')}</span>
+                          <span>
+                            {daysInSelectedMonth} {format(monthDateObj, 'MMM')}
+                          </span>
+                        </div>
+                      </div>
+                    </section>
+                  </>
+                )}
+
+                {reportView === 'calendar' && (
+                  <section className="calendar-card" aria-label="Monthly devotional calendar" style={{ margin: '4px 0' }}>
+                    <div className="ledger-head" style={{ marginBottom: 8 }}>
+                      <h3 style={{ fontSize: 16 }}>Devotional Calendar</h3>
+                      <small className="muted" style={{ fontSize: 11 }}>
+                        Tap any date to open
+                      </small>
                     </div>
-                  </div>
-                </section>
 
-                <div className="overview-pillars">
-                  <div className="pillar-card arati-pillar">
-                    <span className="pillar-eyebrow">Morning Devotion</span>
-                    <strong className="pillar-value">
-                      {report.arati} {report.arati === 1 ? 'day' : 'days'}
-                    </strong>
-                    <span className="pillar-desc">
-                      Maṅgala Ārati offered
-                      {report.aratiPartial > 0 ? ` (+${report.aratiPartial} partial)` : ''}
-                    </span>
-                  </div>
-
-                  <div className="pillar-card sastra-pillar">
-                    <span className="pillar-eyebrow">Śāstra & Śravaṇam</span>
-                    <strong className="pillar-value">
-                      {(report.reading + report.hearing).toLocaleString('en-IN')} min
-                    </strong>
-                    <span className="pillar-desc">
-                      {report.reading}m reading • {report.hearing}m hearing
-                    </span>
-                  </div>
-                </div>
-
-                {/* C. Japa Overview Section */}
-                <section className="japa-sanctuary-card" aria-label="Monthly Japa overview">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <span style={{ color: 'var(--gold)', display: 'inline-flex' }}>
-                      <JapaMalaMotif size={20} />
-                    </span>
-                    <h3 style={{ margin: 0 }}>Holy Name & Japa</h3>
-                  </div>
-
-                  <div className="japa-summary-row">
-                    <div className="japa-total-block">
-                      <div className="japa-big">{report.japa.toLocaleString('en-IN')} rounds</div>
-                      <span>
-                        {report.japaDays > 0
-                          ? `Recorded on ${report.japaDays} ${report.japaDays === 1 ? 'day' : 'days'} this month`
-                          : 'No japa rounds recorded for this month yet'}
-                      </span>
+                    <div className="calendar-weekdays">
+                      {weekdayLabels.map((w) => (
+                        <span key={w}>{w}</span>
+                      ))}
                     </div>
-                    <div className="japa-intention-badge">Intention: {japaTarget} / day</div>
-                  </div>
 
-                  <div className="japa-chart-wrap">
-                    <div
-                      className="japa-bars"
-                      role="img"
-                      aria-label={`Daily Japa chart for ${format(monthDateObj, 'MMMM yyyy')}`}
-                    >
+                    <div className="calendar-grid">
+                      {Array.from({ length: firstDayOffset }, (_, idx) => (
+                        <div key={`pad-${idx}`} aria-hidden="true" />
+                      ))}
                       {monthDayNumbers.map((dayNum) => {
                         const dayKey = `${month}-${String(dayNum).padStart(2, '0')}`;
-                        const rounds = report.japaByDate[dayKey];
-                        const isRecorded = rounds !== undefined && rounds !== null;
-                        const pct =
-                          isRecorded && rounds > 0
-                            ? Math.max(12, Math.min(100, Math.round((rounds / Math.max(1, maxDailyJapa)) * 100)))
-                            : 0;
+                        const hasSadhana = Boolean(report.sadhanaDates[dayKey]);
+                        const hasInner = Boolean(report.innerDates[dayKey]);
+                        const hasAny = hasSadhana || hasInner;
+                        const isToday = dayKey === todayStr;
+                        const isSelected = dayKey === date;
 
                         return (
                           <button
                             key={dayKey}
                             type="button"
-                            className="japa-bar-col"
-                            title={
-                              !isRecorded
-                                ? `${dayNum} ${format(monthDateObj, 'MMM')}: Not recorded`
-                                : `${dayNum} ${format(monthDateObj, 'MMM')}: ${rounds} rounds`
-                            }
-                            aria-label={
-                              !isRecorded
-                                ? `${dayNum} ${format(monthDateObj, 'MMMM')}: Not recorded`
-                                : `${dayNum} ${format(monthDateObj, 'MMMM')}: ${rounds} rounds`
-                            }
+                            className={`calendar-day ${hasAny ? 'has-offering' : ''} ${isToday ? 'is-today' : ''} ${
+                              isSelected ? 'is-selected' : ''
+                            }`}
                             onClick={() => {
                               setDate(dayKey);
                               switchTab('daily');
                             }}
                           >
-                            {!isRecorded ? (
-                              <span className="japa-unrecorded-tick" />
-                            ) : rounds === 0 ? (
-                              <span className="japa-zero-dot" />
-                            ) : (
-                              <span
-                                className={`japa-bar-fill ${rounds >= japaTarget ? 'met' : 'recorded'}`}
-                                style={{ height: `${pct}%` }}
-                              />
-                            )}
+                            <span>{dayNum}</span>
+                            <span className="calendar-dots">
+                              {hasSadhana && <span className="cal-dot sadhana" />}
+                              {hasInner && <span className="cal-dot inner" />}
+                            </span>
                           </button>
                         );
                       })}
                     </div>
 
-                    <div className="japa-axis">
-                      <span>1 {format(monthDateObj, 'MMM')}</span>
-                      <span>15 {format(monthDateObj, 'MMM')}</span>
-                      <span>
-                        {daysInSelectedMonth} {format(monthDateObj, 'MMM')}
-                      </span>
-                    </div>
-
-                    <div className="japa-legend">
+                    <div className="japa-legend" style={{ marginTop: 10 }}>
                       <span className="japa-legend-item">
                         <span className="legend-swatch" style={{ background: 'var(--tulsi)' }} />
-                        Intention met ({japaTarget}+)
+                        Sādhana / Japa
                       </span>
                       <span className="japa-legend-item">
                         <span className="legend-swatch" style={{ background: 'var(--gold)' }} />
-                        Recorded rounds
-                      </span>
-                      <span className="japa-legend-item">
-                        <span
-                          className="legend-swatch"
-                          style={{ border: '1.5px solid var(--gold)', background: 'var(--cream)' }}
-                        />
-                        Recorded 0
-                      </span>
-                      <span className="japa-legend-item">
-                        <span className="legend-swatch" style={{ background: '#DFD2BC', height: 3, borderRadius: 1 }} />
-                        Unrecorded
+                        Journal or Seva
                       </span>
                     </div>
-                  </div>
-                </section>
+                  </section>
+                )}
 
-                {/* D. Devotional Calendar */}
-                <section className="calendar-card" aria-label="Monthly devotional calendar">
-                  <div className="ledger-head" style={{ marginBottom: 10 }}>
-                    <h3>Devotional Calendar</h3>
-                    <small className="muted" style={{ fontSize: 11.5 }}>
-                      Tap any date to open
-                    </small>
-                  </div>
-
-                  <div className="calendar-weekdays">
-                    {weekdayLabels.map((w) => (
-                      <span key={w}>{w}</span>
-                    ))}
-                  </div>
-
-                  <div className="calendar-grid">
-                    {Array.from({ length: firstDayOffset }, (_, idx) => (
-                      <div key={`pad-${idx}`} aria-hidden="true" />
-                    ))}
-                    {monthDayNumbers.map((dayNum) => {
-                      const dayKey = `${month}-${String(dayNum).padStart(2, '0')}`;
-                      const hasSadhana = Boolean(report.sadhanaDates[dayKey]);
-                      const hasInner = Boolean(report.innerDates[dayKey]);
-                      const hasAny = hasSadhana || hasInner;
-                      const isToday = dayKey === todayStr;
-                      const isSelected = dayKey === date;
-                      const japaVal = report.japaByDate[dayKey];
-
-                      return (
-                        <button
-                          key={dayKey}
-                          type="button"
-                          className={`calendar-day ${hasAny ? 'has-offering' : ''} ${isToday ? 'is-today' : ''} ${
-                            isSelected ? 'is-selected' : ''
-                          }`}
-                          aria-label={`${dayNum} ${format(monthDateObj, 'MMMM yyyy')}${
-                            hasAny ? ', offerings recorded' : ''
-                          }`}
-                          title={
-                            japaVal !== undefined && japaVal !== null
-                              ? `${dayNum} ${format(monthDateObj, 'MMM')}: ${japaVal} japa rounds`
-                              : `${dayNum} ${format(monthDateObj, 'MMM')}`
-                          }
-                          onClick={() => {
-                            setDate(dayKey);
-                            switchTab('daily');
-                          }}
-                        >
-                          <span>{dayNum}</span>
-                          <span className="calendar-dots">
-                            {hasSadhana && <span className="cal-dot sadhana" />}
-                            {hasInner && <span className="cal-dot inner" />}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="japa-legend" style={{ marginTop: 12 }}>
-                    <span className="japa-legend-item">
-                      <span className="legend-swatch" style={{ background: 'var(--tulsi)' }} />
-                      Sādhana / Japa
-                    </span>
-                    <span className="japa-legend-item">
-                      <span className="legend-swatch" style={{ background: 'var(--gold)' }} />
-                      Journal or Seva
-                    </span>
-                  </div>
-                </section>
-
-                {/* E. Offerings by Category */}
-                <section className="ledger-section" aria-label="Hearing and Reading offerings">
-                  <div className="ledger-head">
-                    <h3>Hearing and Reading</h3>
-                  </div>
-                  <div className="ledger-list">
-                    <div className="ledger-row">
-                      <div className="ledger-label">
-                        Śrīmad Bhāgavatam classes
-                        {report.classesPartial > 0 && <small>{report.classesPartial} partial class entries</small>}
-                      </div>
-                      <div className="ledger-val">
-                        {report.classes}
-                        <span>{report.classes === 1 ? 'class' : 'classes'}</span>
-                      </div>
-                    </div>
-
-                    <div className="ledger-row">
-                      <div className="ledger-label">Śrī Caitanya-caritāmṛta</div>
-                      <div className="ledger-val">
-                        {report.gita_reading}
-                        <span>{report.gita_reading === 1 ? 'day' : 'days'}</span>
-                      </div>
-                    </div>
-
-                    <div className="ledger-row">
-                      <div className="ledger-label">
-                        Book reading
-                        {goals.book_minutes && <small>Daily intention: {goals.book_minutes} min</small>}
-                      </div>
-                      <div className="ledger-val">
-                        {report.reading.toLocaleString('en-IN')}
-                        <span>min</span>
-                        {report.pages > 0 && (
-                          <>
-                            {' • '}
-                            {report.pages.toLocaleString('en-IN')}
-                            <span>pages</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="ledger-row">
-                      <div className="ledger-label">
-                        Śrīla Prabhupāda lectures
-                        {goals.lecture_minutes && <small>Daily intention: {goals.lecture_minutes} min</small>}
-                      </div>
-                      <div className="ledger-val">
-                        {report.hearing.toLocaleString('en-IN')}
-                        <span>min</span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                <section className="ledger-section" aria-label="Temple and Seva offerings">
-                  <div className="ledger-head">
-                    <h3>Temple and Seva</h3>
-                  </div>
-                  <div className="ledger-list">
-                    <div className="ledger-row">
-                      <div className="ledger-label">Temple visits</div>
-                      <div className="ledger-val">
-                        {report.visit}
-                        <span>{report.visit === 1 ? 'visit' : 'visits'}</span>
-                      </div>
-                    </div>
-
-                    <div className="ledger-row">
-                      <div className="ledger-label">
-                        Temple service hours
-                        {goals.monthly_service && <small>Monthly intention: {goals.monthly_service} hrs</small>}
-                      </div>
-                      <div className="ledger-val">
-                        {report.service}
-                        <span>{report.service === 1 ? 'hr' : 'hrs'}</span>
-                      </div>
-                    </div>
-
-                    <div className="ledger-row">
-                      <div className="ledger-label">Contributions offered</div>
-                      <div className="ledger-val">
-                        {report.contribution > 0
-                          ? `${report.contribution.toLocaleString('en-IN', { maximumFractionDigits: 2 })} INR`
-                          : 'Not recorded'}
-                      </div>
-                    </div>
-
-                    <div className="ledger-row">
-                      <div className="ledger-label">
-                        Śrīmad Bhāgavatam sets distributed
-                        {goals.monthly_bhagavatam_sets && (
-                          <small>Monthly intention: {goals.monthly_bhagavatam_sets} sets</small>
-                        )}
-                      </div>
-                      <div className="ledger-val">
-                        {report.bhagavatam_sets}
-                        <span>{report.bhagavatam_sets === 1 ? 'set' : 'sets'}</span>
-                      </div>
-                    </div>
-
-                    <div className="ledger-row">
-                      <div className="ledger-label">
-                        Bhagavad-gītā books distributed
-                        {goals.monthly_gita_books && (
-                          <small>Monthly intention: {goals.monthly_gita_books} books</small>
-                        )}
-                      </div>
-                      <div className="ledger-val">
-                        {report.gita_books}
-                        <span>{report.gita_books === 1 ? 'book' : 'books'}</span>
-                      </div>
-                    </div>
-
-                    {report.other_books > 0 && (
+                {reportView === 'ledger' && (
+                  <section className="ledger-section" style={{ margin: '4px 0', padding: '12px 14px 6px' }}>
+                    <div className="ledger-list">
                       <div className="ledger-row">
-                        <div className="ledger-label">Other transcendental books distributed</div>
+                        <div className="ledger-label">Śrīmad Bhāgavatam classes</div>
                         <div className="ledger-val">
-                          {report.other_books}
-                          <span>{report.other_books === 1 ? 'book' : 'books'}</span>
+                          {report.classes}
+                          <span>{report.classes === 1 ? 'class' : 'classes'}</span>
                         </div>
                       </div>
-                    )}
 
-                    <div className="ledger-row">
-                      <div className="ledger-label">
-                        Other devotional service
-                        {report.other_service_notes.length > 0 && (
-                          <small>
-                            {report.other_service_notes
-                              .slice(0, 3)
-                              .map((n) => n.text)
-                              .join(' • ')}
-                          </small>
-                        )}
+                      <div className="ledger-row">
+                        <div className="ledger-label">Śrī Caitanya-caritāmṛta</div>
+                        <div className="ledger-val">
+                          {report.gita_reading}
+                          <span>{report.gita_reading === 1 ? 'day' : 'days'}</span>
+                        </div>
                       </div>
-                      <div className="ledger-val">
-                        {report.other_service_days}
-                        <span>{report.other_service_days === 1 ? 'day' : 'days'}</span>
+
+                      <div className="ledger-row">
+                        <div className="ledger-label">Book reading</div>
+                        <div className="ledger-val">
+                          {report.reading.toLocaleString('en-IN')} <span>min</span>
+                          {report.pages > 0 && (
+                            <>
+                              {' • '}
+                              {report.pages.toLocaleString('en-IN')} <span>p</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="ledger-row">
+                        <div className="ledger-label">Spiritual realizations</div>
+                        <div className="ledger-val">
+                          {report.realizations_count} <span>entries ({report.journal}d)</span>
+                        </div>
+                      </div>
+
+                      <div className="ledger-row">
+                        <div className="ledger-label">Temple visits & service</div>
+                        <div className="ledger-val">
+                          {report.visit} <span>visits</span> • {report.service} <span>hrs</span>
+                        </div>
+                      </div>
+
+                      <div className="ledger-row">
+                        <div className="ledger-label">Books distributed</div>
+                        <div className="ledger-val">
+                          {report.bhagavatam_sets} <span>SB</span> • {report.gita_books} <span>BG</span>
+                          {report.other_books > 0 ? ` • ${report.other_books} oth` : ''}
+                        </div>
+                      </div>
+
+                      <div className="ledger-row">
+                        <div className="ledger-label">Contributions offered</div>
+                        <div className="ledger-val">
+                          {report.contribution > 0
+                            ? `${report.contribution.toLocaleString('en-IN', { maximumFractionDigits: 2 })} INR`
+                            : 'Not recorded'}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </section>
+                  </section>
+                )}
 
-                <section className="ledger-section" aria-label="Personal Reflections summary">
-                  <div className="ledger-head">
-                    <h3>Personal Reflections</h3>
-                  </div>
-                  <div className="ledger-list">
-                    <div className="ledger-row">
-                      <div className="ledger-label">Days with journal entries</div>
-                      <div className="ledger-val">
-                        {report.journal}
-                        <span>{report.journal === 1 ? 'day' : 'days'}</span>
-                      </div>
-                    </div>
-
-                    <div className="ledger-row">
-                      <div className="ledger-label">Spiritual realizations recorded</div>
-                      <div className="ledger-val">
-                        {report.realizations_count}
-                        <span>{report.realizations_count === 1 ? 'entry' : 'entries'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                {/* F. Monthly Remembrance ("Looking Back with Gratitude") */}
-                <section className="remembrance-card" aria-label="Looking Back with Gratitude">
-                  <span className="eyebrow">MONTHLY REMEMBRANCE</span>
-                  <h3>Looking Back with Gratitude</h3>
-                  <p className="muted" style={{ marginTop: 2, marginBottom: 12 }}>
-                    What did Krishna teach you this month? Record any realizations, blessings, or prayers you wish to
-                    preserve from {format(monthDateObj, 'MMMM yyyy')}.
-                  </p>
-                  <textarea
-                    rows={4}
-                    aria-label="Looking Back with Gratitude"
-                    placeholder="Write your monthly gratitude and remembrance…"
-                    value={remembrance}
-                    onChange={(e) => setRemembrance(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="save"
-                    style={{ marginBottom: 4, marginTop: 12 }}
-                    disabled={savingRemembrance}
-                    onClick={saveMonthlyRemembrance}
-                  >
-                    <Save size={18} /> {savingRemembrance ? 'Saving…' : 'Save Monthly Remembrance'}
-                  </button>
-                </section>
-
-                <button type="button" className="goals-toggle" onClick={() => setShowGoalsEditor((v) => !v)}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    <Target size={17} color="#B58B4C" />
-                    Adjust Personal Intentions (Sankalpa)
-                  </span>
-                  {showGoalsEditor ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                </button>
-
-                {showGoalsEditor && renderGoalsEditor()}
-
-                <div className="gentle-note" style={{ marginTop: 8 }}>
-                  <TulsiSprigMotif size={16} />
-                  <span>Figures reflect recorded offerings only. Missing days are never treated as failures.</span>
-                </div>
+                {reportView === 'gratitude' && (
+                  <>
+                    <section className="remembrance-card" style={{ margin: '4px 0', padding: '14px' }}>
+                      <span className="eyebrow">MONTHLY REMEMBRANCE</span>
+                      <h3 style={{ fontSize: 18, margin: '2px 0 4px' }}>Looking Back with Gratitude</h3>
+                      <p className="muted" style={{ marginTop: 0, marginBottom: 8, fontSize: 12.5 }}>
+                        What did Krishna teach you in {format(monthDateObj, 'MMMM yyyy')}?
+                      </p>
+                      <textarea
+                        rows={4}
+                        aria-label="Looking Back with Gratitude"
+                        placeholder="Write your monthly gratitude and remembrance…"
+                        value={remembrance}
+                        onChange={(e) => setRemembrance(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="save"
+                        style={{ marginBottom: 2, marginTop: 10 }}
+                        disabled={savingRemembrance}
+                        onClick={saveMonthlyRemembrance}
+                      >
+                        <Save size={17} /> {savingRemembrance ? 'Saving…' : 'Save Monthly Remembrance'}
+                      </button>
+                    </section>
+                  </>
+                )}
               </>
             )}
-          </>
+          </div>
         )}
       </main>
 
