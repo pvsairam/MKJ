@@ -28,7 +28,7 @@ export type Status = 'yes' | 'no' | 'partial' | null;
 export const dailyActivities = [
   'Maṅgala Ārati',
   'Bhāgavatam Class 1',
-  'Bhāgavatam Class 2',
+  'Caitanya-caritāmṛta',
 ] as const;
 
 export const questions = [
@@ -42,8 +42,8 @@ export const questions = [
 ] as const;
 
 export const journalPrompts = [
-  'What did I learn from Srimad Bhagavatam?',
-  'What did I learn from Bhagavad-gītā?',
+  'What did I learn from Śrīmad-Bhāgavatam?',
+  'What did I learn from Śrī Caitanya-caritāmṛta?',
 ] as const;
 
 export type TempleEventType =

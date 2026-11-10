@@ -583,7 +583,14 @@ export default function App() {
             }
           : { ...emptyDaily }
       );
-      setActivities(Object.fromEntries((a.data || []).map((x) => [x.activity_key, x.status])));
+      setActivities(
+        Object.fromEntries(
+          (a.data || []).map((x) => [
+            x.activity_key === 'Bhāgavatam Class 2' ? 'Caitanya-caritāmṛta' : x.activity_key,
+            x.status,
+          ])
+        )
+      );
       setJournal((j.data?.answers as Record<string, string>) || {});
       setEvents((t.data as TempleEventRow[]) || []);
       setEditingEventId(null);
@@ -665,6 +672,16 @@ export default function App() {
         );
       }
     }
+
+    // Clean up legacy 'Bhāgavatam Class 2' key if present so it doesn't duplicate 'Caitanya-caritāmṛta'
+    queries.push(
+      db
+        .from('activity_entries')
+        .delete()
+        .eq('user_id', uid)
+        .eq('entry_date', date)
+        .eq('activity_key', 'Bhāgavatam Class 2')
+    );
 
     const results = await Promise.all(queries);
     const failures = results.filter((x) => x.error).map((x) => x.error!.message);
@@ -975,13 +992,15 @@ export default function App() {
         hearing: hearingTotal,
         arati: (a.data || []).filter((x) => x.activity_key === 'Maṅgala Ārati' && x.status === 'yes').length,
         aratiPartial: (a.data || []).filter((x) => x.activity_key === 'Maṅgala Ārati' && x.status === 'partial').length,
-        classes: (a.data || []).filter((x) => x.activity_key.startsWith('Bhāgavatam Class') && x.status === 'yes')
+        classes: (a.data || []).filter((x) => x.activity_key === 'Bhāgavatam Class 1' && x.status === 'yes')
           .length,
         classesPartial: (a.data || []).filter(
-          (x) => x.activity_key.startsWith('Bhāgavatam Class') && x.status === 'partial'
+          (x) => x.activity_key === 'Bhāgavatam Class 1' && x.status === 'partial'
         ).length,
         gita_reading: (a.data || []).filter(
-          (x) => x.activity_key === 'Bhagavad-gītā Reading' && (x.status === 'yes' || x.status === 'partial')
+          (x) =>
+            (x.activity_key === 'Caitanya-caritāmṛta' || x.activity_key === 'Bhāgavatam Class 2') &&
+            (x.status === 'yes' || x.status === 'partial')
         ).length,
         journal: journalDays,
         realizations_count: realizationsCount,
@@ -1980,7 +1999,7 @@ export default function App() {
                     </div>
 
                     <div className="ledger-row">
-                      <div className="ledger-label">Bhagavad-gītā reading</div>
+                      <div className="ledger-label">Śrī Caitanya-caritāmṛta</div>
                       <div className="ledger-val">
                         {report.gita_reading}
                         <span>{report.gita_reading === 1 ? 'day' : 'days'}</span>
