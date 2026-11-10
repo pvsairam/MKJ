@@ -216,157 +216,324 @@ function OrnamentRule() {
   );
 }
 
-/* Dvāpara & Tretā Yuga Sacred Architectural Mandala & Garbhagṛha Shrine */
+/* Ancient Vedic Temple Garbhagṛha Shrine — Carved Stone Mandapa, Kalasha & Goloka Yantra */
 function YugaSanctumMandala() {
-  const petalAngles = [0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5];
-  const innerAngles = [0, 45, 90, 135, 180, 225, 270, 315];
+  const outerPetals = Array.from({ length: 16 }, (_, i) => i * 22.5);
+  const innerPetals = Array.from({ length: 8 }, (_, i) => i * 45);
+  const sunRays = Array.from({ length: 32 }, (_, i) => i * 11.25);
 
   return (
-    <div className="yuga-sanctum" aria-label="Dvāpara Yuga Sacred Goloka Yantra Sanctuary">
-      {/* Ornate Corner Temple Brackets */}
-      <svg className="yuga-corner tl" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-        <path d="M2 38V10C2 5.58 5.58 2 10 2H38" stroke="currentColor" strokeWidth="1.2" />
-        <path d="M7 30V12C7 9.24 9.24 7 12 7H30" stroke="currentColor" strokeWidth="0.8" opacity="0.65" />
-        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.8" />
-      </svg>
-      <svg className="yuga-corner tr" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-        <path d="M2 38V10C2 5.58 5.58 2 10 2H38" stroke="currentColor" strokeWidth="1.2" />
-        <path d="M7 30V12C7 9.24 9.24 7 12 7H30" stroke="currentColor" strokeWidth="0.8" opacity="0.65" />
-        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.8" />
-      </svg>
-      <svg className="yuga-corner bl" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-        <path d="M2 38V10C2 5.58 5.58 2 10 2H38" stroke="currentColor" strokeWidth="1.2" />
-        <path d="M7 30V12C7 9.24 9.24 7 12 7H30" stroke="currentColor" strokeWidth="0.8" opacity="0.65" />
-        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.8" />
-      </svg>
-      <svg className="yuga-corner br" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-        <path d="M2 38V10C2 5.58 5.58 2 10 2H38" stroke="currentColor" strokeWidth="1.2" />
-        <path d="M7 30V12C7 9.24 9.24 7 12 7H30" stroke="currentColor" strokeWidth="0.8" opacity="0.65" />
-        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.8" />
-      </svg>
-
-      {/* Top Sacred Yuga Inscription */}
-      <div className="yuga-inscription-top">
-        <span className="yuga-pill">DVĀPARA · TRETĀ SANCTUM</span>
-      </div>
-
-      {/* Central Carvings: 16-Petal Goloka Padma Mandala + Tilak + Bansuri + Mayura Pankha */}
+    <div className="yuga-sanctum" aria-label="Sacred Goloka Vrindavan Temple Sanctum">
       <div className="yuga-mandala-stage">
-        <svg className="yuga-mandala-svg" viewBox="0 0 260 260" fill="none" aria-hidden="true">
+        <svg className="yuga-mandala-svg" viewBox="0 0 380 310" fill="none" aria-hidden="true">
           <defs>
-            <radialGradient id="sanctumGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#F5D796" stopOpacity="0.34" />
-              <stop offset="55%" stopColor="#B58B4C" stopOpacity="0.12" />
-              <stop offset="100%" stopColor="#261623" stopOpacity="0" />
+            <radialGradient id="garbhaAura" cx="50%" cy="54%" r="52%">
+              <stop offset="0%" stopColor="#FFE5A3" stopOpacity="0.42" />
+              <stop offset="42%" stopColor="#C99649" stopOpacity="0.18" />
+              <stop offset="78%" stopColor="#4A213B" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#1A0E17" stopOpacity="0" />
             </radialGradient>
-            <linearGradient id="goldLeaf" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#F7E0AC" />
-              <stop offset="50%" stopColor="#CFA564" />
-              <stop offset="100%" stopColor="#9A6F32" />
+
+            <linearGradient id="vedicGold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#FFF0C2" />
+              <stop offset="35%" stopColor="#E5BD77" />
+              <stop offset="70%" stopColor="#B8873D" />
+              <stop offset="100%" stopColor="#845A21" />
             </linearGradient>
+
+            <linearGradient id="vedicGoldVertical" x1="50%" y1="0%" x2="50%" y2="100%">
+              <stop offset="0%" stopColor="#FCE7B2" />
+              <stop offset="50%" stopColor="#CFA15A" />
+              <stop offset="100%" stopColor="#8E6328" />
+            </linearGradient>
+
+            <radialGradient id="peacockEye" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#1A264E" />
+              <stop offset="45%" stopColor="#1D6A68" />
+              <stop offset="78%" stopColor="#D9AF62" />
+              <stop offset="100%" stopColor="#FCE7B2" />
+            </radialGradient>
           </defs>
 
-          {/* Warm Vedic Altar Aura */}
-          <circle cx="130" cy="130" r="122" fill="url(#sanctumGlow)" />
+          {/* Subtle Sacred Ambient Glow */}
+          <circle cx="190" cy="168" r="145" fill="url(#garbhaAura)" />
 
-          {/* Outer Bhūpura & Temple Pillar Rings */}
-          <circle cx="130" cy="130" r="116" stroke="url(#goldLeaf)" strokeWidth="0.9" strokeDasharray="3 3" opacity="0.55" />
-          <circle cx="130" cy="130" r="108" stroke="url(#goldLeaf)" strokeWidth="1.2" opacity="0.78" />
-          <circle cx="130" cy="130" r="98" stroke="url(#goldLeaf)" strokeWidth="0.7" opacity="0.45" />
+          {/* ============================================================
+              1. TEMPLE SHIKHARA KALASHA & TORANA ARCH (ANCIENT VIMANA)
+             ============================================================ */}
+          {/* Outer Temple Frame Border */}
+          <rect
+            x="10"
+            y="10"
+            width="360"
+            height="290"
+            rx="14"
+            stroke="url(#vedicGold)"
+            strokeWidth="1"
+            opacity="0.45"
+          />
+          <rect
+            x="15"
+            y="15"
+            width="350"
+            height="280"
+            rx="10"
+            stroke="url(#vedicGold)"
+            strokeWidth="0.6"
+            strokeDasharray="3 3"
+            opacity="0.38"
+          />
 
-          {/* 16-Petal Goloka Padma (Cosmic Lotus of Vrindavan) */}
-          {petalAngles.map((deg) => (
-            <g key={`outer-${deg}`} transform={`rotate(${deg} 130 130)`}>
+          {/* Left Carved Temple Stambha (Pillar) */}
+          <g opacity="0.88">
+            {/* Base Pedestal */}
+            <rect x="22" y="266" width="32" height="8" rx="1.5" stroke="url(#vedicGold)" strokeWidth="1.2" fill="rgba(229,189,119,0.1)" />
+            <rect x="26" y="258" width="24" height="8" rx="1" stroke="url(#vedicGold)" strokeWidth="1" />
+            <path d="M26 258 L30 248 H46 L50 258 Z" stroke="url(#vedicGold)" strokeWidth="1" fill="rgba(229,189,119,0.08)" />
+            {/* Fluted Pillar Shaft */}
+            <rect x="31" y="96" width="14" height="152" stroke="url(#vedicGoldVertical)" strokeWidth="1.15" fill="rgba(26,14,23,0.55)" />
+            <line x1="35.5" y1="100" x2="35.5" y2="244" stroke="url(#vedicGold)" strokeWidth="0.6" opacity="0.55" />
+            <line x1="40.5" y1="100" x2="40.5" y2="244" stroke="url(#vedicGold)" strokeWidth="0.6" opacity="0.55" />
+            {/* Decorative Pillar Bands (Kirtimukha / Pearl Motifs) */}
+            <rect x="29" y="138" width="18" height="6" rx="2" stroke="url(#vedicGold)" strokeWidth="1" fill="#2A1624" />
+            <rect x="29" y="192" width="18" height="6" rx="2" stroke="url(#vedicGold)" strokeWidth="1" fill="#2A1624" />
+            {/* Purnakalasha Pillar Capital */}
+            <path d="M27 96 H49 L45 86 H31 L27 96 Z" stroke="url(#vedicGold)" strokeWidth="1.1" fill="rgba(229,189,119,0.12)" />
+            <ellipse cx="38" cy="82" rx="9" ry="4" stroke="url(#vedicGold)" strokeWidth="1.1" fill="#2A1624" />
+          </g>
+
+          {/* Right Carved Temple Stambha (Pillar) */}
+          <g opacity="0.88">
+            {/* Base Pedestal */}
+            <rect x="326" y="266" width="32" height="8" rx="1.5" stroke="url(#vedicGold)" strokeWidth="1.2" fill="rgba(229,189,119,0.1)" />
+            <rect x="330" y="258" width="24" height="8" rx="1" stroke="url(#vedicGold)" strokeWidth="1" />
+            <path d="M330 258 L334 248 H350 L354 258 Z" stroke="url(#vedicGold)" strokeWidth="1" fill="rgba(229,189,119,0.08)" />
+            {/* Fluted Pillar Shaft */}
+            <rect x="335" y="96" width="14" height="152" stroke="url(#vedicGoldVertical)" strokeWidth="1.15" fill="rgba(26,14,23,0.55)" />
+            <line x1="339.5" y1="100" x2="339.5" y2="244" stroke="url(#vedicGold)" strokeWidth="0.6" opacity="0.55" />
+            <line x1="344.5" y1="100" x2="344.5" y2="244" stroke="url(#vedicGold)" strokeWidth="0.6" opacity="0.55" />
+            {/* Decorative Pillar Bands */}
+            <rect x="333" y="138" width="18" height="6" rx="2" stroke="url(#vedicGold)" strokeWidth="1" fill="#2A1624" />
+            <rect x="333" y="192" width="18" height="6" rx="2" stroke="url(#vedicGold)" strokeWidth="1" fill="#2A1624" />
+            {/* Purnakalasha Pillar Capital */}
+            <path d="M331 96 H353 L349 86 H335 L331 96 Z" stroke="url(#vedicGold)" strokeWidth="1.1" fill="rgba(229,189,119,0.12)" />
+            <ellipse cx="342" cy="82" rx="9" ry="4" stroke="url(#vedicGold)" strokeWidth="1.1" fill="#2A1624" />
+          </g>
+
+          {/* Ornate Multifoil Temple Torana Arch (Prabhavali) */}
+          <path
+            d="M38 78 C38 48, 86 38, 126 34 C154 31, 174 22, 190 16 C206 22, 226 31, 254 34 C294 38, 342 48, 342 78"
+            stroke="url(#vedicGold)"
+            strokeWidth="1.6"
+            fill="none"
+          />
+          <path
+            d="M45 82 C45 55, 92 45, 130 41 C158 38, 175 29, 190 23 C205 29, 222 38, 250 41 C288 45, 335 55, 335 82"
+            stroke="url(#vedicGold)"
+            strokeWidth="0.85"
+            strokeDasharray="2.5 2.5"
+            opacity="0.7"
+            fill="none"
+          />
+
+          {/* Crown Amalgam & Kalasha Finial at Apex */}
+          <ellipse cx="190" cy="21" rx="12" ry="3.5" stroke="url(#vedicGold)" strokeWidth="1.1" fill="#2A1624" />
+          <path d="M184 18 C184 12, 196 12, 196 18 Z" stroke="url(#vedicGold)" strokeWidth="1.1" fill="url(#vedicGold)" />
+          <circle cx="190" cy="10" r="2.2" fill="#FFF0C2" />
+
+          {/* ============================================================
+              2. HANGING TEMPLE GHANTA (BELLS) & DEEPAM (LAMPS)
+             ============================================================ */}
+          {/* Left Hanging Temple Bell */}
+          <g opacity="0.9">
+            <line x1="74" y1="48" x2="74" y2="86" stroke="url(#vedicGold)" strokeWidth="1" strokeDasharray="2 1.5" />
+            <path
+              d="M67 95 C67 88, 70 86, 74 86 C78 86, 81 88, 81 95 L83 100 H65 L67 95 Z"
+              stroke="url(#vedicGold)"
+              strokeWidth="1.15"
+              fill="rgba(229, 189, 119, 0.18)"
+            />
+            <circle cx="74" cy="102.5" r="1.8" fill="#FCE7B2" />
+          </g>
+
+          {/* Right Hanging Temple Bell */}
+          <g opacity="0.9">
+            <line x1="306" y1="48" x2="306" y2="86" stroke="url(#vedicGold)" strokeWidth="1" strokeDasharray="2 1.5" />
+            <path
+              d="M299 95 C299 88, 302 86, 306 86 C310 86, 313 88, 313 95 L315 100 H297 L299 95 Z"
+              stroke="url(#vedicGold)"
+              strokeWidth="1.15"
+              fill="rgba(229, 189, 119, 0.18)"
+            />
+            <circle cx="306" cy="102.5" r="1.8" fill="#FCE7B2" />
+          </g>
+
+          {/* ============================================================
+              3. GOLOKA PADMA MANDALA (COSMIC LOTUS OF VRINDAVAN)
+             ============================================================ */}
+          {/* 32 Effulgent Brahmajyoti Rays */}
+          {sunRays.map((deg) => (
+            <line
+              key={`ray-${deg}`}
+              x1="190"
+              y1="56"
+              x2="190"
+              y2="64"
+              transform={`rotate(${deg} 190 168)`}
+              stroke="url(#vedicGold)"
+              strokeWidth="0.75"
+              opacity="0.5"
+            />
+          ))}
+
+          {/* Outer Mandala Concentric Temple Rings */}
+          <circle cx="190" cy="168" r="106" stroke="url(#vedicGold)" strokeWidth="1.3" opacity="0.85" />
+          <circle cx="190" cy="168" r="101" stroke="url(#vedicGold)" strokeWidth="0.7" strokeDasharray="2 3" opacity="0.6" />
+
+          {/* 16-Petal Goloka Padma */}
+          {outerPetals.map((deg) => (
+            <g key={`outer-petal-${deg}`} transform={`rotate(${deg} 190 168)`}>
               <path
-                d="M130 22 C137 40 139 54 130 68 C121 54 123 40 130 22 Z"
-                stroke="url(#goldLeaf)"
-                strokeWidth="1.05"
-                fill="rgba(223, 193, 142, 0.06)"
+                d="M190 67 C197 83, 199 97, 190 112 C181 97, 183 83, 190 67 Z"
+                stroke="url(#vedicGold)"
+                strokeWidth="1.1"
+                fill="rgba(229, 189, 119, 0.07)"
               />
-              <circle cx="130" cy="18" r="1.4" fill="#E8CA93" opacity="0.85" />
+              <path
+                d="M190 73 C194 84, 194 94, 190 105"
+                stroke="url(#vedicGold)"
+                strokeWidth="0.5"
+                opacity="0.45"
+              />
+              <circle cx="190" cy="64" r="1.3" fill="#FCE7B2" opacity="0.85" />
             </g>
           ))}
 
-          {/* Sacred Geometric 8-Pointed Star (Ashta-Lakshmi / VaikunthaKona) */}
+          {/* Ashta-Kona (8-Pointed Interlocking Vedic Star Sanctuary) */}
           <rect
-            x="68"
-            y="68"
-            width="124"
-            height="124"
-            rx="4"
-            stroke="url(#goldLeaf)"
-            strokeWidth="1"
-            opacity="0.55"
+            x="132"
+            y="110"
+            width="116"
+            height="116"
+            rx="3"
+            stroke="url(#vedicGold)"
+            strokeWidth="1.05"
+            fill="rgba(26, 14, 23, 0.28)"
+            opacity="0.72"
           />
           <rect
-            x="68"
-            y="68"
-            width="124"
-            height="124"
-            rx="4"
-            transform="rotate(45 130 130)"
-            stroke="url(#goldLeaf)"
-            strokeWidth="1"
-            opacity="0.55"
+            x="132"
+            y="110"
+            width="116"
+            height="116"
+            rx="3"
+            transform="rotate(45 190 168)"
+            stroke="url(#vedicGold)"
+            strokeWidth="1.05"
+            fill="rgba(26, 14, 23, 0.28)"
+            opacity="0.72"
           />
 
           {/* Inner 8-Petal Yogapīṭha Lotus */}
-          <circle cx="130" cy="130" r="64" stroke="url(#goldLeaf)" strokeWidth="1.2" opacity="0.8" />
-          {innerAngles.map((deg) => (
-            <g key={`inner-${deg}`} transform={`rotate(${deg} 130 130)`}>
+          <circle cx="190" cy="168" r="62" stroke="url(#vedicGold)" strokeWidth="1.2" opacity="0.88" />
+          {innerPetals.map((deg) => (
+            <g key={`inner-petal-${deg}`} transform={`rotate(${deg} 190 168)`}>
               <path
-                d="M130 66 C138 82 138 96 130 110 C122 96 122 82 130 66 Z"
-                stroke="url(#goldLeaf)"
-                strokeWidth="1.1"
-                fill="rgba(247, 224, 172, 0.08)"
+                d="M190 106 C199 121, 199 136, 190 150 C181 136, 181 121, 190 106 Z"
+                stroke="url(#vedicGold)"
+                strokeWidth="1.15"
+                fill="rgba(252, 231, 178, 0.1)"
               />
             </g>
           ))}
 
-          {/* Innermost Garbhagṛha Medallion */}
-          <circle cx="130" cy="130" r="44" fill="#2A1624" stroke="url(#goldLeaf)" strokeWidth="1.5" />
-          <circle cx="130" cy="130" r="39" stroke="url(#goldLeaf)" strokeWidth="0.7" strokeDasharray="2 2" opacity="0.65" />
+          {/* ============================================================
+              4. CENTRAL GARBHAGṚHA MEDALLION: TILAK, MAYŪRA PANKHA & VAṀŚĪ
+             ============================================================ */}
+          <circle cx="190" cy="168" r="44" fill="#23121E" stroke="url(#vedicGold)" strokeWidth="1.7" />
+          <circle cx="190" cy="168" r="39.5" stroke="url(#vedicGold)" strokeWidth="0.7" strokeDasharray="2 2" opacity="0.7" />
 
-          {/* Sacred Urdhva Pundra (Vaishnava Tilak) & Tulsi Leaf */}
-          <path
-            d="M123 102 V128 C123 134 126 138 130 138 C134 138 137 134 137 128 V102"
-            stroke="#F7E0AC"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-          <path
-            d="M130 134 C126 141 125 147 130 154 C135 147 134 141 130 134 Z"
-            fill="#EBC989"
-            stroke="#F7E0AC"
-            strokeWidth="1"
-          />
-
-          {/* Peacock Feather Crest (Mayūra Pankha) Crown */}
-          <path
-            d="M130 88 C136 78 146 76 148 84 C150 91 140 97 130 96"
-            stroke="#DFC18E"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-          />
-          <ellipse cx="141" cy="85" rx="4.5" ry="3.2" transform="rotate(-20 141 85)" stroke="#F7E0AC" strokeWidth="1.1" />
-          <circle cx="141" cy="85" r="1.5" fill="#F7E0AC" />
-
-          {/* Divine Bansuri (Venu Flute) Across the Lotus Altar */}
-          <g transform="rotate(-11 130 148)">
-            <line x1="88" y1="148" x2="172" y2="148" stroke="url(#goldLeaf)" strokeWidth="3.2" strokeLinecap="round" />
-            <line x1="94" y1="148" x2="94" y2="148.1" stroke="#2A1624" strokeWidth="2" strokeLinecap="round" />
-            <circle cx="112" cy="148" r="1.1" fill="#2A1624" />
-            <circle cx="121" cy="148" r="1.1" fill="#2A1624" />
-            <circle cx="130" cy="148" r="1.1" fill="#2A1624" />
-            <circle cx="139" cy="148" r="1.1" fill="#2A1624" />
-            <circle cx="148" cy="148" r="1.1" fill="#2A1624" />
-            {/* Tassel */}
-            <path d="M167 149 L164 158 M167 149 L168 159 M167 149 L172 157" stroke="#EBC989" strokeWidth="1" strokeLinecap="round" />
+          {/* Mayūra Pankha (Peacock Feather Crest) */}
+          <g transform="translate(190, 128)">
+            <path
+              d="M0 10 C5 -4, 18 -6, 20 3 C22 11, 10 17, 0 15"
+              stroke="url(#vedicGold)"
+              strokeWidth="1.2"
+              fill="rgba(229, 189, 119, 0.12)"
+            />
+            <ellipse cx="12" cy="4" rx="5.5" ry="4" transform="rotate(-18 12 4)" fill="url(#peacockEye)" stroke="#FCE7B2" strokeWidth="0.9" />
+            <circle cx="12" cy="4" r="1.6" fill="#FFF0C2" />
+            {/* Delicate feather barbs */}
+            <path d="M5 -1 L8 -5 M12 -2 L16 -6 M18 0 L23 -2 M19 6 L24 7" stroke="#E5BD77" strokeWidth="0.7" strokeLinecap="round" opacity="0.75" />
           </g>
+
+          {/* Sacred Ūrdhva Puṇḍra (Vaiṣṇava Tilak) & Tulasī Leaf */}
+          <path
+            d="M183 141 V167 C183 173.5, 186 177.5, 190 177.5 C194 177.5, 197 173.5, 197 167 V141"
+            stroke="#FFF0C2"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M190 173 C185.5 180, 184.5 186.5, 190 194 C195.5 186.5, 194.5 180, 190 173 Z"
+            fill="url(#vedicGold)"
+            stroke="#FFF0C2"
+            strokeWidth="0.95"
+          />
+
+          {/* Divine Vaṁśī (Bansuri Flute) Resting Across the Lotus Feet */}
+          <g transform="rotate(-10 190 187)">
+            <rect x="144" y="185" width="92" height="4.2" rx="2.1" fill="url(#vedicGold)" stroke="#FFF0C2" strokeWidth="0.5" />
+            {/* Decorative Gold Bands on Flute */}
+            <line x1="152" y1="185" x2="152" y2="189.2" stroke="#23121E" strokeWidth="1.3" />
+            <line x1="226" y1="185" x2="226" y2="189.2" stroke="#23121E" strokeWidth="1.3" />
+            {/* Svara Holes */}
+            <circle cx="166" cy="187.1" r="1.15" fill="#23121E" />
+            <circle cx="175" cy="187.1" r="1.15" fill="#23121E" />
+            <circle cx="184" cy="187.1" r="1.15" fill="#23121E" />
+            <circle cx="193" cy="187.1" r="1.15" fill="#23121E" />
+            <circle cx="202" cy="187.1" r="1.15" fill="#23121E" />
+            <circle cx="211" cy="187.1" r="1.15" fill="#23121E" />
+            {/* Jeweled Tassel */}
+            <path d="M231 189 L228 198 M231 189 L232 199 M231 189 L236 197" stroke="#FCE7B2" strokeWidth="0.95" strokeLinecap="round" />
+            <circle cx="228" cy="198.5" r="1" fill="#FFF0C2" />
+            <circle cx="232" cy="199.5" r="1" fill="#FFF0C2" />
+            <circle cx="236" cy="197.5" r="1" fill="#FFF0C2" />
+          </g>
+
+          {/* ============================================================
+              5. FLANKING ĀRATI DĪPAS (LIT TEMPLE OIL LAMPS) & LOTUS PEDESTAL
+             ============================================================ */}
+          {/* Left Lit Deepam */}
+          <g transform="translate(66, 232)">
+            <path d="M2 16 C4 22, 18 22, 20 16 L23 14 H-1 L2 16 Z" fill="url(#vedicGold)" />
+            <path d="M7 16 L5 24 H17 L15 16" stroke="url(#vedicGold)" strokeWidth="1.1" fill="rgba(229,189,119,0.2)" />
+            {/* Sacred Flame */}
+            <path d="M11 3 C8 8, 8 12, 11 13.5 C14 12, 14 8, 11 3 Z" fill="#FFE89E" />
+            <path d="M11 6 C9.5 9, 9.5 11.5, 11 12.5 C12.5 11.5, 12.5 9, 11 6 Z" fill="#FFFDF4" />
+          </g>
+
+          {/* Right Lit Deepam */}
+          <g transform="translate(292, 232)">
+            <path d="M2 16 C4 22, 18 22, 20 16 L23 14 H-1 L2 16 Z" fill="url(#vedicGold)" />
+            <path d="M7 16 L5 24 H17 L15 16" stroke="url(#vedicGold)" strokeWidth="1.1" fill="rgba(229,189,119,0.2)" />
+            {/* Sacred Flame */}
+            <path d="M11 3 C8 8, 8 12, 11 13.5 C14 12, 14 8, 11 3 Z" fill="#FFE89E" />
+            <path d="M11 6 C9.5 9, 9.5 11.5, 11 12.5 C12.5 11.5, 12.5 9, 11 6 Z" fill="#FFFDF4" />
+          </g>
+
+          {/* Bottom Simhasana Lotus Pedestal Steps */}
+          <path
+            d="M84 282 H296 M102 287 H278 M128 292 H252"
+            stroke="url(#vedicGold)"
+            strokeWidth="1.1"
+            strokeLinecap="round"
+            opacity="0.7"
+          />
         </svg>
       </div>
 
-      {/* Sacred Mantra Chisel Plaque */}
+      {/* Sacred Mahā-Mantra Inscribed on the Altar Base */}
       <div className="yuga-mantra-scroll">
         <div className="yuga-mantra-divider">
           <span className="line" />

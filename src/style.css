@@ -347,82 +347,31 @@ header .icon-button {
   color: #E5D4BE;
 }
 
-/* Dvāpara & Tretā Yuga Sacred Architectural Mandala & Garbhagṛha Shrine */
+/* Ancient Vedic Temple Garbhagṛha Shrine */
 .yuga-sanctum {
   position: relative;
   background:
-    radial-gradient(circle at 50% 48%, rgba(181, 139, 76, 0.22) 0%, rgba(72, 40, 63, 0.45) 52%, #1E111B 100%),
-    linear-gradient(180deg, #271726 0%, #371C30 50%, #241320 100%);
-  padding: 18px 18px 16px;
+    radial-gradient(circle at 50% 46%, rgba(229, 189, 119, 0.22) 0%, rgba(72, 40, 63, 0.5) 54%, #1A0E17 100%),
+    linear-gradient(180deg, #241320 0%, #351A2E 50%, #1F101B 100%);
+  padding: 12px 12px 14px;
   text-align: center;
   overflow: hidden;
-  border-top: 1px solid rgba(223, 193, 142, 0.25);
-  border-bottom: 1px solid rgba(223, 193, 142, 0.28);
-}
-
-.yuga-corner {
-  position: absolute;
-  width: 28px;
-  height: 28px;
-  color: #DFC18E;
-  opacity: 0.72;
-  pointer-events: none;
-}
-
-.yuga-corner.tl {
-  top: 10px;
-  left: 10px;
-}
-
-.yuga-corner.tr {
-  top: 10px;
-  right: 10px;
-  transform: scaleX(-1);
-}
-
-.yuga-corner.bl {
-  bottom: 10px;
-  left: 10px;
-  transform: scaleY(-1);
-}
-
-.yuga-corner.br {
-  bottom: 10px;
-  right: 10px;
-  transform: scale(-1, -1);
-}
-
-.yuga-inscription-top {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 4px;
-}
-
-.yuga-pill {
-  display: inline-block;
-  font-size: 9.5px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: #E7CA96;
-  padding: 3px 12px;
-  border-radius: 99px;
-  border: 1px solid rgba(223, 193, 142, 0.32);
-  background: rgba(255, 248, 232, 0.05);
+  border-top: 1px solid rgba(229, 189, 119, 0.3);
+  border-bottom: 1px solid rgba(229, 189, 119, 0.3);
 }
 
 .yuga-mandala-stage {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 2px auto;
+  margin: 0 auto;
 }
 
 .yuga-mandala-svg {
-  width: 216px;
-  height: 216px;
-  max-width: 100%;
-  filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.35));
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.38));
 }
 
 .yuga-mantra-scroll {
