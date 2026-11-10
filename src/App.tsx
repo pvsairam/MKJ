@@ -216,6 +216,173 @@ function OrnamentRule() {
   );
 }
 
+/* Dvāpara & Tretā Yuga Sacred Architectural Mandala & Garbhagṛha Shrine */
+function YugaSanctumMandala() {
+  const petalAngles = [0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5];
+  const innerAngles = [0, 45, 90, 135, 180, 225, 270, 315];
+
+  return (
+    <div className="yuga-sanctum" aria-label="Dvāpara Yuga Sacred Goloka Yantra Sanctuary">
+      {/* Ornate Corner Temple Brackets */}
+      <svg className="yuga-corner tl" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <path d="M2 38V10C2 5.58 5.58 2 10 2H38" stroke="currentColor" strokeWidth="1.2" />
+        <path d="M7 30V12C7 9.24 9.24 7 12 7H30" stroke="currentColor" strokeWidth="0.8" opacity="0.65" />
+        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.8" />
+      </svg>
+      <svg className="yuga-corner tr" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <path d="M2 38V10C2 5.58 5.58 2 10 2H38" stroke="currentColor" strokeWidth="1.2" />
+        <path d="M7 30V12C7 9.24 9.24 7 12 7H30" stroke="currentColor" strokeWidth="0.8" opacity="0.65" />
+        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.8" />
+      </svg>
+      <svg className="yuga-corner bl" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <path d="M2 38V10C2 5.58 5.58 2 10 2H38" stroke="currentColor" strokeWidth="1.2" />
+        <path d="M7 30V12C7 9.24 9.24 7 12 7H30" stroke="currentColor" strokeWidth="0.8" opacity="0.65" />
+        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.8" />
+      </svg>
+      <svg className="yuga-corner br" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <path d="M2 38V10C2 5.58 5.58 2 10 2H38" stroke="currentColor" strokeWidth="1.2" />
+        <path d="M7 30V12C7 9.24 9.24 7 12 7H30" stroke="currentColor" strokeWidth="0.8" opacity="0.65" />
+        <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.8" />
+      </svg>
+
+      {/* Top Sacred Yuga Inscription */}
+      <div className="yuga-inscription-top">
+        <span className="yuga-pill">DVĀPARA · TRETĀ SANCTUM</span>
+      </div>
+
+      {/* Central Carvings: 16-Petal Goloka Padma Mandala + Tilak + Bansuri + Mayura Pankha */}
+      <div className="yuga-mandala-stage">
+        <svg className="yuga-mandala-svg" viewBox="0 0 260 260" fill="none" aria-hidden="true">
+          <defs>
+            <radialGradient id="sanctumGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#F5D796" stopOpacity="0.34" />
+              <stop offset="55%" stopColor="#B58B4C" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="#261623" stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id="goldLeaf" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#F7E0AC" />
+              <stop offset="50%" stopColor="#CFA564" />
+              <stop offset="100%" stopColor="#9A6F32" />
+            </linearGradient>
+          </defs>
+
+          {/* Warm Vedic Altar Aura */}
+          <circle cx="130" cy="130" r="122" fill="url(#sanctumGlow)" />
+
+          {/* Outer Bhūpura & Temple Pillar Rings */}
+          <circle cx="130" cy="130" r="116" stroke="url(#goldLeaf)" strokeWidth="0.9" strokeDasharray="3 3" opacity="0.55" />
+          <circle cx="130" cy="130" r="108" stroke="url(#goldLeaf)" strokeWidth="1.2" opacity="0.78" />
+          <circle cx="130" cy="130" r="98" stroke="url(#goldLeaf)" strokeWidth="0.7" opacity="0.45" />
+
+          {/* 16-Petal Goloka Padma (Cosmic Lotus of Vrindavan) */}
+          {petalAngles.map((deg) => (
+            <g key={`outer-${deg}`} transform={`rotate(${deg} 130 130)`}>
+              <path
+                d="M130 22 C137 40 139 54 130 68 C121 54 123 40 130 22 Z"
+                stroke="url(#goldLeaf)"
+                strokeWidth="1.05"
+                fill="rgba(223, 193, 142, 0.06)"
+              />
+              <circle cx="130" cy="18" r="1.4" fill="#E8CA93" opacity="0.85" />
+            </g>
+          ))}
+
+          {/* Sacred Geometric 8-Pointed Star (Ashta-Lakshmi / VaikunthaKona) */}
+          <rect
+            x="68"
+            y="68"
+            width="124"
+            height="124"
+            rx="4"
+            stroke="url(#goldLeaf)"
+            strokeWidth="1"
+            opacity="0.55"
+          />
+          <rect
+            x="68"
+            y="68"
+            width="124"
+            height="124"
+            rx="4"
+            transform="rotate(45 130 130)"
+            stroke="url(#goldLeaf)"
+            strokeWidth="1"
+            opacity="0.55"
+          />
+
+          {/* Inner 8-Petal Yogapīṭha Lotus */}
+          <circle cx="130" cy="130" r="64" stroke="url(#goldLeaf)" strokeWidth="1.2" opacity="0.8" />
+          {innerAngles.map((deg) => (
+            <g key={`inner-${deg}`} transform={`rotate(${deg} 130 130)`}>
+              <path
+                d="M130 66 C138 82 138 96 130 110 C122 96 122 82 130 66 Z"
+                stroke="url(#goldLeaf)"
+                strokeWidth="1.1"
+                fill="rgba(247, 224, 172, 0.08)"
+              />
+            </g>
+          ))}
+
+          {/* Innermost Garbhagṛha Medallion */}
+          <circle cx="130" cy="130" r="44" fill="#2A1624" stroke="url(#goldLeaf)" strokeWidth="1.5" />
+          <circle cx="130" cy="130" r="39" stroke="url(#goldLeaf)" strokeWidth="0.7" strokeDasharray="2 2" opacity="0.65" />
+
+          {/* Sacred Urdhva Pundra (Vaishnava Tilak) & Tulsi Leaf */}
+          <path
+            d="M123 102 V128 C123 134 126 138 130 138 C134 138 137 134 137 128 V102"
+            stroke="#F7E0AC"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <path
+            d="M130 134 C126 141 125 147 130 154 C135 147 134 141 130 134 Z"
+            fill="#EBC989"
+            stroke="#F7E0AC"
+            strokeWidth="1"
+          />
+
+          {/* Peacock Feather Crest (Mayūra Pankha) Crown */}
+          <path
+            d="M130 88 C136 78 146 76 148 84 C150 91 140 97 130 96"
+            stroke="#DFC18E"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+          />
+          <ellipse cx="141" cy="85" rx="4.5" ry="3.2" transform="rotate(-20 141 85)" stroke="#F7E0AC" strokeWidth="1.1" />
+          <circle cx="141" cy="85" r="1.5" fill="#F7E0AC" />
+
+          {/* Divine Bansuri (Venu Flute) Across the Lotus Altar */}
+          <g transform="rotate(-11 130 148)">
+            <line x1="88" y1="148" x2="172" y2="148" stroke="url(#goldLeaf)" strokeWidth="3.2" strokeLinecap="round" />
+            <line x1="94" y1="148" x2="94" y2="148.1" stroke="#2A1624" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="112" cy="148" r="1.1" fill="#2A1624" />
+            <circle cx="121" cy="148" r="1.1" fill="#2A1624" />
+            <circle cx="130" cy="148" r="1.1" fill="#2A1624" />
+            <circle cx="139" cy="148" r="1.1" fill="#2A1624" />
+            <circle cx="148" cy="148" r="1.1" fill="#2A1624" />
+            {/* Tassel */}
+            <path d="M167 149 L164 158 M167 149 L168 159 M167 149 L172 157" stroke="#EBC989" strokeWidth="1" strokeLinecap="round" />
+          </g>
+        </svg>
+      </div>
+
+      {/* Sacred Mantra Chisel Plaque */}
+      <div className="yuga-mantra-scroll">
+        <div className="yuga-mantra-divider">
+          <span className="line" />
+          <span className="diamond" />
+          <span className="line" />
+        </div>
+        <p className="yuga-mahamantra">
+          Hare Kṛṣṇa Hare Kṛṣṇa • Kṛṣṇa Kṛṣṇa Hare Hare
+          <br />
+          Hare Rāma Hare Rāma • Rāma Rāma Hare Hare
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function Field({
   label,
   hint,
@@ -462,7 +629,7 @@ export default function App() {
   function switchTab(nextTab: Tab) {
     setNotice('');
     setTab(nextTab);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelector('.content')?.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function changeDate(nextDate: string) {
@@ -1295,7 +1462,7 @@ export default function App() {
                 <h2>Hare Krishna</h2>
                 <p>Welcome to your sacred space</p>
               </div>
-              <img src="/radha-krishna-vrindavan.png" alt="Artistic illustration of Radha and Krishna in Vrindavan" />
+              <YugaSanctumMandala />
               <div className="darshan-bottom">
                 <div className="motif-mark">
                   <LotusMotif size={24} />

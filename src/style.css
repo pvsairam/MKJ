@@ -32,10 +32,17 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-body {
+html, body {
   margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
   background: var(--ivory);
   color: var(--charcoal);
+}
+
+#root {
+  height: 100%;
 }
 
 h1, h2, h3, .serif {
@@ -123,8 +130,10 @@ textarea {
 .app {
   max-width: 500px;
   margin: 0 auto;
-  min-height: 100dvh;
-  padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--ivory);
   box-shadow: 0 0 50px rgba(48, 39, 43, 0.06);
   position: relative;
@@ -132,6 +141,7 @@ textarea {
 
 /* Sanctuary Top Header */
 header {
+  flex-shrink: 0;
   position: relative;
   padding: calc(18px + env(safe-area-inset-top, 0px)) 48px 16px;
   display: flex;
@@ -210,7 +220,12 @@ header .icon-button {
 }
 
 .content {
-  padding: 16px 16px 32px;
+  flex: 1 1 0%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding: 16px 16px 28px;
 }
 
 /* Date Navigation Bar */
@@ -347,10 +362,118 @@ header .icon-button {
   color: #E5D4BE;
 }
 
-.darshan img {
-  width: 100%;
-  height: auto;
-  display: block;
+/* Dvāpara & Tretā Yuga Sacred Architectural Mandala & Garbhagṛha Shrine */
+.yuga-sanctum {
+  position: relative;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(181, 139, 76, 0.22) 0%, rgba(72, 40, 63, 0.45) 52%, #1E111B 100%),
+    linear-gradient(180deg, #271726 0%, #371C30 50%, #241320 100%);
+  padding: 18px 18px 16px;
+  text-align: center;
+  overflow: hidden;
+  border-top: 1px solid rgba(223, 193, 142, 0.25);
+  border-bottom: 1px solid rgba(223, 193, 142, 0.28);
+}
+
+.yuga-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  color: #DFC18E;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.yuga-corner.tl {
+  top: 10px;
+  left: 10px;
+}
+
+.yuga-corner.tr {
+  top: 10px;
+  right: 10px;
+  transform: scaleX(-1);
+}
+
+.yuga-corner.bl {
+  bottom: 10px;
+  left: 10px;
+  transform: scaleY(-1);
+}
+
+.yuga-corner.br {
+  bottom: 10px;
+  right: 10px;
+  transform: scale(-1, -1);
+}
+
+.yuga-inscription-top {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.yuga-pill {
+  display: inline-block;
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #E7CA96;
+  padding: 3px 12px;
+  border-radius: 99px;
+  border: 1px solid rgba(223, 193, 142, 0.32);
+  background: rgba(255, 248, 232, 0.05);
+}
+
+.yuga-mandala-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2px auto;
+}
+
+.yuga-mandala-svg {
+  width: 216px;
+  height: 216px;
+  max-width: 100%;
+  filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.35));
+}
+
+.yuga-mantra-scroll {
+  margin-top: 4px;
+  padding: 0 8px;
+}
+
+.yuga-mantra-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.yuga-mantra-divider .line {
+  width: 48px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(223, 193, 142, 0.65), transparent);
+}
+
+.yuga-mantra-divider .diamond {
+  width: 5px;
+  height: 5px;
+  background: #DFC18E;
+  transform: rotate(45deg);
+}
+
+.yuga-mahamantra {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 12.5px;
+  line-height: 1.55;
+  letter-spacing: 0.02em;
+  color: #F4E3C3;
 }
 
 .darshan-bottom {
@@ -1789,23 +1912,17 @@ header .icon-button {
   font-size: 20px;
 }
 
-/* Bottom Navigation */
+/* Bottom Navigation — Locked Flex Footer (Never Floats on iOS Scroll) */
 .bottom {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  flex-shrink: 0;
   width: 100%;
-  max-width: 500px;
-  background: rgba(255, 249, 240, 0.96);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: #FFF9F0;
   border-top: 1px solid var(--border-delicate);
   box-shadow: 0 -4px 18px rgba(48, 39, 43, 0.06);
   display: flex;
   justify-content: space-around;
-  padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
-  z-index: 20;
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
 }
 
 .bottom button {
@@ -1838,7 +1955,8 @@ header .icon-button {
 
 /* Authentication View */
 .auth {
-  min-height: 100dvh;
+  height: 100%;
+  overflow-y: auto;
   display: grid;
   place-items: center;
   padding: 20px;
